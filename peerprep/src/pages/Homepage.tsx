@@ -1,109 +1,192 @@
-import React from "react";
-import { Search } from "lucide-react";
+import React, { useState } from "react";
+import Header from "@/components/ui/Header";
+import Footer from "@/components/ui/Footer";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
-const Homepage: React.FC = () => {
+const HomePage: React.FC = () => {
+  const [questionType, setQuestionType] = useState<string | undefined>();
+  const [difficulty, setDifficulty] = useState<string | undefined>();
+  const [proficiency, setProficiency] = useState<string | undefined>();
+
+  const handleReset = () => {
+    setQuestionType(undefined);
+    setDifficulty(undefined);
+    setProficiency(undefined);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      {/* NAVBAR */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="text-2xl font-extrabold text-indigo-600">
-              PeerPrep
+    <div className="w-full min-h-screen flex flex-col">
+      <Header />
+
+      <main className="flex-1 w-full bg-slate-50 text-slate-900 py-10">
+        <div className="max-w-7xl mx-auto px-6 space-y-10">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold mb-2">Welcome to PeerPrep!</h1>
+            <p className="text-slate-600">
+              Track your progress and find matching peers to collaborate with.
+            </p>
+          </div>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-6">Your Statistics</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <Card className="p-6">
+                <CardHeader>
+                  <CardTitle className="text-lg text-slate-500">
+                    Questions Attempted
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-semibold mt-2">42</p>
+                </CardContent>
+              </Card>
+
+              <Card className="p-6">
+                <CardHeader>
+                  <CardTitle className="text-lg text-slate-500">
+                    Average Time per Question
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-semibold mt-2">8m 15s</p>
+                </CardContent>
+              </Card>
+
+              <Card className="p-6">
+                <CardHeader>
+                  <CardTitle className="text-lg text-slate-500">
+                    Average Difficulty Level
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-semibold mt-2">Medium</p>
+                </CardContent>
+              </Card>
             </div>
-            <div className="hidden md:flex items-center gap-3">
-              <button className="px-4 py-2 rounded-2xl border border-slate-200 text-sm">
-                Log in
-              </button>
-              <button className="px-4 py-2 rounded-2xl bg-indigo-600 text-white text-sm shadow">
-                Get Started
-              </button>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-6">
+              Popular Questions in PeerPrep
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[
+                { title: "Two Sum", difficulty: "Easy" },
+                { title: "LRU Cache", difficulty: "Medium" },
+                { title: "Regular Expression Matching", difficulty: "Hard" },
+              ].map((q) => (
+                <Card key={q.title} className="p-5">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-slate-500">
+                      {q.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-slate-600">Difficulty: {q.difficulty}</p>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </div>
-        </div>
-      </header>
+          </section>
 
-      {/* MAIN CONTENT */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* SEARCH BAR */}
-        <section>
-          <h1 className="text-3xl font-extrabold">Find Your Question Match</h1>
-          <p className="mt-2 text-slate-600 max-w-xl">
-            Search for questions to practise, explore by type, or check out
-            what’s popular.
-          </p>
+          <section>
+            <h2 className="text-2xl font-semibold mb-6">
+              Start A Practice Session
+            </h2>
+            <Card className="p-6 max-w-2xl mx-auto text-xl">
+              <CardHeader>
+                <CardTitle>Select Your Criteria</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <Select
+                      key={questionType ?? questionType}
+                      value={questionType}
+                      onValueChange={setQuestionType}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Question Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="algorithms">Algorithms</SelectItem>
+                        <SelectItem value="data-structures">
+                          Data Structures
+                        </SelectItem>
+                        <SelectItem value="system-design">
+                          System Design
+                        </SelectItem>
+                        <SelectItem value="databases">Databases</SelectItem>
+                        <SelectItem value="behavioral">Behavioral</SelectItem>
+                      </SelectContent>
+                    </Select>
 
-          <div className="mt-6 flex items-center gap-2 bg-white rounded-xl p-2 border shadow-sm max-w-2xl">
-            <Search className="w-5 h-5 text-slate-400" />
-            <input
-              className="flex-1 outline-none px-2 py-2 text-sm"
-              placeholder="Search questions by keyword, topic, or difficulty"
-              aria-label="search questions"
-            />
-            <button className="px-3 py-2 rounded-lg bg-indigo-50 text-indigo-600 text-sm">
-              Search
-            </button>
-          </div>
-        </section>
+                    <Select
+                      key={difficulty ?? difficulty}
+                      value={difficulty}
+                      onValueChange={setDifficulty}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Difficulty Level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="easy">Easy</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="hard">Hard</SelectItem>
+                      </SelectContent>
+                    </Select>
 
-        {/* QUESTION TYPES */}
-        <section className="mt-12">
-          <h2 className="text-2xl font-semibold">Question Types</h2>
-          <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-6">
-            {[
-              "Algorithms",
-              "Data Structures",
-              "System Design",
-              "Mathematics",
-              "Databases",
-              "Behavioral",
-            ].map((type) => (
-              <div
-                key={type}
-                className="rounded-xl bg-white p-6 shadow hover:shadow-md cursor-pointer"
-              >
-                <div className="font-semibold">{type}</div>
-              </div>
-            ))}
-          </div>
-        </section>
+                    <Select
+                      key={proficiency ?? proficiency}
+                      value={proficiency}
+                      onValueChange={setProficiency}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Proficiency Level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="beginner">Beginner</SelectItem>
+                        <SelectItem value="intermediate">
+                          Intermediate
+                        </SelectItem>
+                        <SelectItem value="advanced">Advanced</SelectItem>
+                      </SelectContent>
+                    </Select>
 
-        {/* POPULAR QUESTIONS */}
-        <section className="mt-12">
-          <h2 className="text-2xl font-semibold">Popular Questions</h2>
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { title: "Two Sum", difficulty: "Easy" },
-              { title: "LRU Cache", difficulty: "Medium" },
-              { title: "Regular Expression Matching", difficulty: "Hard" },
-            ].map((q) => (
-              <article
-                key={q.title}
-                className="rounded-2xl bg-white shadow p-5"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h4 className="font-semibold">{q.title}</h4>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Difficulty: {q.difficulty}
-                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={handleReset}
+                    >
+                      Reset
+                    </Button>
                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
 
-        {/* FOOTER */}
-        <footer className="mt-16 border-t pt-8 pb-12 text-sm text-slate-600 text-center">
-          <div className="text-xl font-bold text-indigo-600">PeerPrep</div>
-          <div className="mt-2">
-            © {new Date().getFullYear()} PeerPrep. All rights reserved.
-          </div>
-        </footer>
+                  {/* Buttons */}
+                  <div className="sm:col-span-3 mt-2 flex gap-4">
+                    <Button type="submit" className="flex-1">
+                      Search Partner
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </section>
+        </div>
       </main>
+
+      <Footer />
     </div>
   );
-}
+};
 
-export default Homepage;
+export default HomePage;
