@@ -128,11 +128,11 @@ const SignUp = () => {
                   </FormControl>
                   {fieldState.error && (
                     <div className="text-sm text-destructive ">
-                      Password must be:
+                      Password must contain:
                       <ul className="ml-6 list-disc [&>li]:mt-0.5">
                         <li>At least 8 characters</li>
-                        <li>At least one lowercase</li>
-                        <li>At least one uppercase</li>
+                        <li>At least one lowercase letter</li>
+                        <li>At least one uppercase letter</li>
                         <li>At least one number</li>
                       </ul>
                     </div>
