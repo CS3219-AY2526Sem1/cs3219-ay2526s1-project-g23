@@ -1,3 +1,5 @@
+import { signUp } from "@/api/user-service";
+import Spinner from "@/components/custom/spinner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,8 +18,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router";
+import { toast } from "sonner";
 import { z } from "zod";
 
 const formSchema = z.object({
@@ -32,6 +36,8 @@ const formSchema = z.object({
 });
 
 const SignUp = () => {
+  const [loading, startTransition] = useTransition();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -41,8 +47,15 @@ const SignUp = () => {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log(values);
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    startTransition(async () => {
+      try {
+        await signUp(values);
+        toast.success("Account created successfully");
+      } catch (error) {
+        toast.error(error.message);
+      }
+    });
   };
 
   return (
@@ -127,8 +140,8 @@ const SignUp = () => {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
-              Sign Up
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading && <Spinner />} Sign Up
             </Button>
             <div className="text-center text-sm">
               Already have an account?{" "}
