@@ -20,7 +20,7 @@ export const request = async ({
     }
 
     const response = await axios(requestOptions);
-    if (response.status >= 200 && response.status < 300) {
+    if (response.status < 200 && response.status >= 300) {
       throw new Error(response.data?.message);
     }
     return response.data;
