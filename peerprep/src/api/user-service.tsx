@@ -17,3 +17,11 @@ export const signUp = async (data: {
     data,
   });
 };
+
+export const resetPassword = async (data: { email: string }) => {
+  return await userServiceRequest({
+    url: "/auth/reset-password",
+    method: "post",
+    data,
+  });
+};
