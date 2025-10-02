@@ -28,7 +28,7 @@ const Login = () => {
               <Label htmlFor="password">Password</Label>
               <Input type="password" required />
               <Link
-                to="#"
+                to="/reset-password"
                 className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
               >
                 Forgot your password?
