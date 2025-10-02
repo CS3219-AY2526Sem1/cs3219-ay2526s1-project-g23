@@ -8,9 +8,7 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
 
     /* Bundler mode */
@@ -27,7 +25,8 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    "useUnknownInCatchVariables": false
   },
   "include": ["src"]
 }

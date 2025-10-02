@@ -1,3 +1,4 @@
+import { Toaster } from "@/components/ui/sonner";
 import Login from "@/pages/Login";
 import SignUp from "@/pages/SignUp";
 import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router";
@@ -14,6 +15,7 @@ function App() {
           <Route path="/homepage" element={<Homepage />} />
         </Routes>
       </Router>
+      <Toaster position="top-right" richColors />
     </div>
   );
 }
