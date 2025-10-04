@@ -31,11 +31,10 @@ const authController = {
         });
       }
 
-      // Create user (password hashing handled by User model pre-save hook)
       const user = new User({ 
         username: username.trim(), 
         email: email.toLowerCase().trim(), 
-        password // Don't hash here - let User model handle it
+        password 
       });
       
       await user.save();
@@ -187,7 +186,6 @@ const authController = {
 
       const user = await User.findOne({ email: email.toLowerCase().trim() });
       
-      // Always return success message for security (don't reveal if email exists)
       if (!user) {
         return res.status(200).json({ 
           message: 'If an account with this email exists, a reset link has been sent.' 
@@ -208,7 +206,6 @@ const authController = {
       // In production, remove this and send via email service
       res.status(200).json({ 
         message: 'Password reset instructions sent to your email',
-        // Remove this line in production:
         resetToken: resetToken // Only for testing - send via email instead
       });
 
@@ -247,7 +244,6 @@ const authController = {
         });
       }
 
-      // Update password (hashing handled by User model pre-save middleware)
       user.password = password;
       user.passwordResetToken = undefined;
       user.passwordResetExpires = undefined;
@@ -328,7 +324,6 @@ const authController = {
         });
       }
 
-      // Optional: Check if password was changed after token was issued
       if (user.passwordChangedAt) {
         const tokenIssuedAt = new Date(decoded.iat * 1000);
         if (tokenIssuedAt < user.passwordChangedAt) {
