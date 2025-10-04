@@ -35,7 +35,6 @@ const userController = {
 
   getAllUsers: async (req, res) => {
     try {
-      // Admin check handled by roleMiddleware, but double-check here
       if (!req.user.isAdmin) {
         return res.status(403).json({ 
           error: 'Forbidden',
@@ -92,9 +91,8 @@ const userController = {
         });
       }
 
-      // Remove sensitive fields that shouldn't be updated via this endpoint
-      delete updates.password; // Use separate password change endpoint
-      delete updates.isAdmin; // Use separate privilege endpoint
+      delete updates.password;
+      delete updates.isAdmin;
       delete updates._id;
       delete updates.createdAt;
       delete updates.updatedAt;
@@ -158,7 +156,6 @@ const userController = {
         });
       }
 
-      // Prevent self-privilege modification
       if (req.user._id.toString() === userId) {
         return res.status(400).json({ 
           error: 'Invalid operation',
@@ -235,12 +232,8 @@ const userController = {
     }
   },
 
-  // Enhanced logout with optional token blacklisting
   logout: async (req, res) => {
     try {
-      // Optional: Add token to blacklist (requires Redis or similar)
-      // const token = req.token;
-      // await blacklistToken(token);
       
       res.status(200).json({ 
         message: 'Logged out successfully. Please clear your local token.' 
@@ -254,13 +247,11 @@ const userController = {
     }
   },
 
-  // Additional PeerPrep-specific methods
   updatePreferences: async (req, res) => {
     try {
       const { userId } = req.params;
       const { difficulty, topics, programmingLanguages } = req.body;
 
-      // Only allow self-updates for preferences
       if (req.user._id.toString() !== userId) {
         return res.status(403).json({ 
           error: 'Forbidden',
