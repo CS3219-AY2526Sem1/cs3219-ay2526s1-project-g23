@@ -8,17 +8,26 @@ const RouteGuard = () => {
   const navigate = useNavigate();
   const [loading, startTransition] = useTransition();
 
-  const publicRoutes = ["/login", "/sign-up", "/forgot-password"];
+  const publicRoutes = [
+    "/login",
+    "/sign-up",
+    "/forgot-password",
+    "/reset-password",
+  ];
 
   useEffect(() => {
     startTransition(async () => {
+      const isPublicRoute = publicRoutes.reduce(
+        (result, route) => result || pathname.startsWith(route),
+        false
+      );
       try {
         await verifyToken();
-        if (publicRoutes.includes(pathname)) {
+        if (isPublicRoute) {
           navigate("/");
         }
       } catch {
-        if (!publicRoutes.includes(pathname)) {
+        if (!isPublicRoute) {
           navigate("/login");
         }
       }

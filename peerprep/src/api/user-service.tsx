@@ -20,11 +20,23 @@ export const signUp = async (data: {
 };
 
 export const forgotPassword = async (data: { email: string }) => {
-  return await userServiceRequest({
+  await userServiceRequest({
     url: "/auth/forgot-password",
     method: "post",
     data,
   });
+};
+
+export const resetPassword = async (data: {
+  token: string;
+  password: string;
+}) => {
+  const { message } = await userServiceRequest({
+    url: "/auth/reset-password",
+    method: "post",
+    data,
+  });
+  return message;
 };
 
 export const login = async (data: {
