@@ -81,3 +81,21 @@ export const verifyToken = async () => {
     throw error;
   }
 };
+
+export const logout = async () => {
+  try {
+    await userServiceRequest({
+      url: "/user/logout",
+      method: "post",
+    });
+  } catch (error) {
+    console.error(error.message);
+  } finally {
+    localStorage.removeItem("jwtToken");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("username");
+    localStorage.removeItem("email");
+    localStorage.removeItem("isAdmin");
+    localStorage.removeItem("statistics");
+  }
+};
