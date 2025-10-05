@@ -5,13 +5,22 @@ export const request = async ({
   port,
   method,
   data = {},
+  includeToken = false,
 }: RequestOptions) => {
   try {
     const requestOptions: AxiosRequestConfig = {
       url,
       method,
       baseURL: `http://localhost:${port}`,
+      headers: {},
     };
+
+    if (includeToken) {
+      const jwtToken = localStorage.getItem("jwtToken");
+      // @ts-ignore
+      requestOptions.headers.Authorization = `Bearer ${jwtToken}`;
+    }
+
     if (method == "get") {
       requestOptions.params = data;
     } else {

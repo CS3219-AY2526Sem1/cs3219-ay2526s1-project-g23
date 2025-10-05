@@ -1,7 +1,7 @@
 import { request } from "@/api";
 
 const userServiceRequest = async (
-  props: Pick<RequestOptions, "url" | "method" | "data">
+  props: Pick<RequestOptions, "url" | "method" | "data" | "includeToken">
 ) => {
   return await request({ ...props, port: 3001 });
 };
@@ -36,4 +36,28 @@ export const login = async (data: {
   localStorage.setItem("email", email);
   localStorage.setItem("isAdmin", isAdmin);
   localStorage.setItem("statistics", JSON.stringify(stats));
+};
+
+export const verifyToken = async () => {
+  try {
+    const { user } = await userServiceRequest({
+      url: "/auth/verify-token",
+      method: "get",
+      includeToken: true,
+    });
+    const { id, username, email, isAdmin, stats } = user;
+    localStorage.setItem("userId", id);
+    localStorage.setItem("username", username);
+    localStorage.setItem("email", email);
+    localStorage.setItem("isAdmin", isAdmin);
+    localStorage.setItem("statistics", JSON.stringify(stats));
+  } catch (error) {
+    localStorage.removeItem("jwtToken");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("username");
+    localStorage.removeItem("email");
+    localStorage.removeItem("isAdmin");
+    localStorage.removeItem("statistics");
+    throw error;
+  }
 };
