@@ -8,6 +8,6 @@ router.get('/', authMiddleware, userController.getAllUsers);
 router.patch('/:userId', authMiddleware, userController.updateUser);
 router.patch('/:userId/privilege', authMiddleware, userController.updateUserPrivilege);
 router.delete('/:userId', authMiddleware, userController.deleteUser);
-router.post('/logout', authMiddleware, userController.logout);
+router.post('/logout', userController.logout);
 
 export default router;
