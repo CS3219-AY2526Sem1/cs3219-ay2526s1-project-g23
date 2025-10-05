@@ -8,7 +8,7 @@ const RouteGuard = () => {
   const navigate = useNavigate();
   const [loading, startTransition] = useTransition();
 
-  const publicRoutes = ["/login", "/sign-up"];
+  const publicRoutes = ["/login", "/sign-up", "/forgot-password"];
 
   useEffect(() => {
     startTransition(async () => {

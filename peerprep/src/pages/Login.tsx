@@ -94,7 +94,7 @@ const Login = () => {
                     <Input type="password" {...field} />
                   </FormControl>
                   <Link
-                    to="#"
+                    to="/forgot-password"
                     className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
                   >
                     Forgot your password?

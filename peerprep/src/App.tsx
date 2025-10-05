@@ -1,5 +1,6 @@
 import RouteGuard from "@/components/custom/route-guard";
 import { Toaster } from "@/components/ui/sonner";
+import ForgotPassword from "@/pages/ForgotPassword";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import SignUp from "@/pages/SignUp";
@@ -13,6 +14,7 @@ function App() {
           <Route element={<RouteGuard />}>
             <Route path="/login" element={<Login />} />
             <Route path="/sign-up" element={<SignUp />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/" element={<Home />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" />} />
