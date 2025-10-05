@@ -11,9 +11,10 @@ export const signUp = async (data: {
   email: string;
   password: string;
 }) => {
-  return await userServiceRequest({
+  const { message } = await userServiceRequest({
     url: "/auth/signup",
     method: "post",
     data,
   });
+  return message;
 };

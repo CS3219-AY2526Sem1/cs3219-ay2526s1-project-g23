@@ -11,7 +11,6 @@ export const request = async ({
       url,
       method,
       baseURL: `http://localhost:${port}`,
-      withCredentials: true,
     };
     if (method == "get") {
       requestOptions.params = data;
@@ -20,11 +19,11 @@ export const request = async ({
     }
 
     const response = await axios(requestOptions);
-    if (response.status < 200 && response.status >= 300) {
-      throw new Error(response.data?.message);
-    }
     return response.data;
   } catch (error) {
+    if (error?.response?.data) {
+      throw new Error(error.response.data.message);
+    }
     throw error;
   }
 };
