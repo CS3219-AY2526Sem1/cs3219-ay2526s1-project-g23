@@ -3,4 +3,5 @@ interface RequestOptions {
   port: number;
   method: "get" | "post" | "put" | "delete";
   data?: object;
+  includeToken?: boolean;
 }

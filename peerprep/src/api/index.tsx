@@ -5,14 +5,22 @@ export const request = async ({
   port,
   method,
   data = {},
+  includeToken = false,
 }: RequestOptions) => {
   try {
     const requestOptions: AxiosRequestConfig = {
       url,
       method,
       baseURL: `http://localhost:${port}`,
-      withCredentials: true,
+      headers: {},
     };
+
+    if (includeToken) {
+      const jwtToken = localStorage.getItem("jwtToken");
+      // @ts-ignore
+      requestOptions.headers.Authorization = `Bearer ${jwtToken}`;
+    }
+
     if (method == "get") {
       requestOptions.params = data;
     } else {
@@ -20,11 +28,11 @@ export const request = async ({
     }
 
     const response = await axios(requestOptions);
-    if (response.status < 200 && response.status >= 300) {
-      throw new Error(response.data?.message);
-    }
     return response.data;
   } catch (error) {
+    if (error?.response?.data) {
+      throw new Error(error.response.data.message);
+    }
     throw error;
   }
 };

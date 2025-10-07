@@ -9,7 +9,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Link } from "react-router";
 import {
   Form,
   FormControl,
@@ -21,6 +20,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
+import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -37,6 +37,7 @@ const formSchema = z.object({
 });
 
 const SignUp = () => {
+  const navigate = useNavigate();
   const [loading, startTransition] = useTransition();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -51,8 +52,9 @@ const SignUp = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     startTransition(async () => {
       try {
-        await signUp(values);
-        toast.success("Account created successfully");
+        const message = await signUp(values);
+        toast.success(message);
+        navigate("/login");
       } catch (error) {
         toast.error(error.message);
       }
