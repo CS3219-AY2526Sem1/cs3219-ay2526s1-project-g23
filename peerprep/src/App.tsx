@@ -18,10 +18,9 @@ function App() {
             <Route path="/sign-up" element={<SignUp />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password/:token" element={<ResetPassword />} />
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Homepage />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" />} />
-          <Route path="/homepage" element={<Homepage />} />
         </Routes>
       </Router>
       <Toaster position="top-right" richColors />
