@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import path from "path";
 import { fileURLToPath } from "url";
 import questionRoutes from "./routes/questions.js";
+import attemptRoutes from './routes/attempts.js';
 
 // Get the directory name for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -25,6 +26,7 @@ mongoose
 
 // Routes
 app.use("/questions", questionRoutes);
+app.use('/attempts', attemptRoutes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

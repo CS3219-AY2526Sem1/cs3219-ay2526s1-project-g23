@@ -43,9 +43,10 @@ const questionController = {
 
     getQuestionById: async (req, res) => {
         try {
-            const { questionId } = req.params;
+            console.log("Get question by id called");
+            const { id } = req.params;
 
-            const question = await Question.findById(questionId);
+            const question = await Question.findById(id);
 
             if (!question) {
                 return res.status(404).json({ error: "Question not found" });
@@ -63,7 +64,25 @@ const questionController = {
     },
 
     getPopularQuestions: async (req, res) => {
-        
+        try {
+            console.log("Get popular question called");
+            //Default number of questions shown is 10
+            const { limit = 10 } = req.query;
+
+            // Find questions sorted by attemptCount descending
+            const questions = await Question.find()
+                .sort({ attemptCount: -1 })
+                .limit(parseInt(limit));
+
+            res.status(200).json(questions);
+
+        } catch (err) {
+            console.error("Error fetching popular questions:", err);
+            res.status(500).json({
+                error: "Failed to retrieve popular questions",
+                message: "Unable to fetch popular questions list"
+            });
+        }
     },
 }
 
