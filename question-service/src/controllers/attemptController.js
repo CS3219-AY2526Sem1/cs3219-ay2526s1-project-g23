@@ -4,12 +4,6 @@ import Question from '../models/Question.js';
 const attemptController = {
     recordAttempt: async (req, res) => {
         try {
-            if (!req.user.isAdmin) {
-                return res.status(403).json({
-                    error: 'Forbidden',
-                    message: 'Administrator privileges required'
-                });
-            }
             const { userId, questionId, timeTakenSeconds, difficulty } = req.body;
 
             // Create a new attempt record
