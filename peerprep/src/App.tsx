@@ -1,7 +1,6 @@
 import RouteGuard from "@/components/custom/route-guard";
 import { Toaster } from "@/components/ui/sonner";
 import ForgotPassword from "@/pages/ForgotPassword";
-import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import ResetPassword from "@/pages/ResetPassword";
 import SignUp from "@/pages/SignUp";
