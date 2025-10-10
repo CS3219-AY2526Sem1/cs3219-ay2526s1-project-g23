@@ -1,11 +1,11 @@
 import RouteGuard from "@/components/custom/route-guard";
 import { Toaster } from "@/components/ui/sonner";
 import ForgotPassword from "@/pages/ForgotPassword";
-import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import ResetPassword from "@/pages/ResetPassword";
 import SignUp from "@/pages/SignUp";
 import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router";
+import Homepage from "@/pages/Homepage/Homepage";
 
 function App() {
   return (
@@ -17,7 +17,7 @@ function App() {
             <Route path="/sign-up" element={<SignUp />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password/:token" element={<ResetPassword />} />
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Homepage />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
