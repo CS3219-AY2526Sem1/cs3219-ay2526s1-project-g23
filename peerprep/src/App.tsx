@@ -5,7 +5,7 @@ import Login from "@/pages/Login";
 import ResetPassword from "@/pages/ResetPassword";
 import SignUp from "@/pages/SignUp";
 import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router";
-import Homepage from "@/pages/Homepage";
+import Homepage from "@/pages/Homepage/Homepage";
 
 function App() {
   return (
