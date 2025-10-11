@@ -1,6 +1,12 @@
+import { changePassword } from "@/api/user-service";
 import Spinner from "@/components/custom/spinner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -18,14 +24,14 @@ import { z } from "zod";
 
 const formSchema = z
   .object({
-    oldPassword: z.string().nonempty(),
+    currentPassword: z.string().nonempty(),
     newPassword: z
       .string()
       .regex(/^(?=(.*[a-z]))(?=(.*[A-Z]))(?=(.*\d))[A-Za-z\d]{8,}$/),
     confirmPassword: z.string(),
   })
   .refine((data) => data.newPassword == data.confirmPassword, {
-    message: "Passwords does not match",
+    message: "New password does not match",
     path: ["confirmPassword"],
   });
 
@@ -35,7 +41,7 @@ const ChangePassword = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      oldPassword: "",
+      currentPassword: "",
       newPassword: "",
       confirmPassword: "",
     },
@@ -44,9 +50,26 @@ const ChangePassword = () => {
   const onChangePassword = async (values: z.infer<typeof formSchema>) => {
     startTransition(async () => {
       try {
-        // TODO: Send API request
+        const message = await changePassword({
+          currentPassword: values.currentPassword,
+          newPassword: values.newPassword,
+        });
+        toast.success(message || "Password changed successfully");
+        form.reset();
       } catch (error) {
-        toast.error(error.message);
+        if (error.message.includes("New password")) {
+          form.setError("newPassword", {
+            type: "value",
+            message: "New password must be different from current password",
+          });
+        } else if (error.message.includes("current password")) {
+          form.setError("currentPassword", {
+            type: "value",
+            message: "Password is incorrect",
+          });
+        } else {
+          toast.error(error.message);
+        }
       }
     });
   };
@@ -55,6 +78,11 @@ const ChangePassword = () => {
     <section>
       <h2 className="text-2xl font-semibold mb-6">Security</h2>
       <Card className="w-full">
+        <CardHeader>
+          <CardDescription>
+            Keep your account secure by updating your password regularly.
+          </CardDescription>
+        </CardHeader>
         <CardContent>
           <Form {...form}>
             <form
@@ -63,8 +91,8 @@ const ChangePassword = () => {
             >
               <FormField
                 control={form.control}
-                name="oldPassword"
-                render={({ field }) => (
+                name="currentPassword"
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <div className="flex justify-center gap-7">
                       <FormLabel className="min-w-32 gap-0">
@@ -79,6 +107,9 @@ const ChangePassword = () => {
                         />
                       </FormControl>
                     </div>
+                    {fieldState.error?.type == "value" && (
+                      <FormMessage className="max-w-72 ml-[156px] text-left text-wrap" />
+                    )}
                   </FormItem>
                 )}
               />
@@ -99,17 +130,20 @@ const ChangePassword = () => {
                         />
                       </FormControl>
                     </div>
-                    {fieldState.error && (
-                      <div className="ml-[156px] text-left text-sm text-destructive ">
-                        Password must contain:
-                        <ul className="ml-6 list-disc [&>li]:mt-0.5">
-                          <li>At least 8 characters</li>
-                          <li>At least one lowercase letter</li>
-                          <li>At least one uppercase letter</li>
-                          <li>At least one number</li>
-                        </ul>
-                      </div>
-                    )}
+                    {fieldState.error &&
+                      (fieldState.error?.type == "value" ? (
+                        <FormMessage className="max-w-72 ml-[156px] text-left text-wrap" />
+                      ) : (
+                        <div className="ml-[156px] text-left text-sm text-destructive ">
+                          Password must contain:
+                          <ul className="ml-6 list-disc [&>li]:mt-0.5">
+                            <li>At least 8 characters</li>
+                            <li>At least one lowercase letter</li>
+                            <li>At least one uppercase letter</li>
+                            <li>At least one number</li>
+                          </ul>
+                        </div>
+                      ))}
                   </FormItem>
                 )}
               />
