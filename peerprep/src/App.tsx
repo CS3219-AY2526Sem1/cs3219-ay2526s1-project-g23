@@ -4,6 +4,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 import Login from "@/pages/Login";
 import ResetPassword from "@/pages/ResetPassword";
 import SignUp from "@/pages/SignUp";
+import UserProfile from "@/pages/UserProfile";
 import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router";
 import Homepage from "@/pages/Homepage/Homepage";
 
@@ -18,6 +19,7 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route path="/" element={<Homepage />} />
+            <Route path="/user-profile" element={<UserProfile />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
