@@ -99,3 +99,25 @@ export const logout = async () => {
     localStorage.removeItem("statistics");
   }
 };
+
+export const getUserStats = async (userId: string) => {
+  const response = await userServiceRequest({
+    url: `/users/${userId}/stats`,
+    method: "get",
+    includeToken: true,
+  });
+  return response;
+};
+
+export const changePassword = async (data: {
+  currentPassword: string;
+  newPassword: string;
+}) => {
+  const { message } = await userServiceRequest({
+    url: "/auth/change-password",
+    method: "post",
+    data,
+    includeToken: true,
+  });
+  return message;
+};

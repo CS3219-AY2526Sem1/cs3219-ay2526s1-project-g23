@@ -354,6 +354,77 @@ const authController = {
         message: 'Unable to verify token' 
       });
     }
+  },
+
+  changePassword: async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.user._id; // From auth middleware
+
+      // Validation
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({
+          error: 'Missing required fields',
+          message: 'Current password and new password are required'
+        });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          error: 'Invalid password',
+          message: 'New password must be at least 6 characters long'
+        });
+      }
+
+      if (currentPassword === newPassword) {
+        return res.status(400).json({
+          error: 'Invalid password',
+          message: 'New password must be different from current password'
+        });
+      }
+
+      // Find user and include password for verification
+      const user = await User.findById(userId).select('+password');
+      if (!user) {
+        return res.status(404).json({
+          error: 'User not found',
+          message: 'User account not found'
+        });
+      }
+
+      // Verify current password
+      const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+      if (!isCurrentPasswordValid) {
+        return res.status(401).json({
+          error: 'Invalid current password',
+          message: 'The current password you entered is incorrect'
+        });
+      }
+
+      // Update password (will be hashed by pre-save middleware)
+      user.password = newPassword;
+      user.passwordChangedAt = new Date();
+      await user.save();
+
+      res.status(200).json({
+        message: 'Password changed successfully'
+      });
+
+    } catch (err) {
+      console.error('Change password error:', err);
+      
+      if (err.name === 'ValidationError') {
+        return res.status(400).json({
+          error: 'Invalid password',
+          message: Object.values(err.errors)[0].message
+        });
+      }
+
+      res.status(500).json({
+        error: 'Password change failed',
+        message: 'Unable to change password. Please try again.'
+      });
+    }
   }
 };
 

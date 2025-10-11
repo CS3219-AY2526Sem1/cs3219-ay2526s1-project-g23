@@ -1,4 +1,5 @@
 import { signUp } from "@/api/user-service";
+import Logo from "@/components/custom/app-logo";
 import Spinner from "@/components/custom/spinner";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,7 +64,9 @@ const SignUp = () => {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="text-center">
-        <CardTitle className="text-lg">Create a PeerPrep account</CardTitle>
+        <CardTitle className="text-lg">
+          Create a <Logo className="inline-block" /> account
+        </CardTitle>
         <CardDescription>Fill in the form below</CardDescription>
       </CardHeader>
       <CardContent>

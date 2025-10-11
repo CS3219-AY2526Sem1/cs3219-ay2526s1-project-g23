@@ -1,4 +1,5 @@
 import { login } from "@/api/user-service";
+import Logo from "@/components/custom/app-logo";
 import Spinner from "@/components/custom/spinner";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,7 +67,9 @@ const Login = () => {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="text-center">
-        <CardTitle className="text-lg">Login to PeerPrep</CardTitle>
+        <CardTitle className="text-lg">
+          Login to <Logo className="inline-block" />
+        </CardTitle>
         <CardDescription>Ace your interviews with PeerPrep</CardDescription>
       </CardHeader>
       <CardContent>
