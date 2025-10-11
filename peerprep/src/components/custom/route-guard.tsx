@@ -1,5 +1,6 @@
 import { verifyToken } from "@/api/user-service";
 import Spinner from "@/components/custom/spinner";
+import Footer from "@/components/ui/Footer";
 import { useEffect, useTransition } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 
@@ -35,10 +36,21 @@ const RouteGuard = () => {
   }, []);
 
   if (loading) {
-    return <Spinner />;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-dvh">
+        <Spinner />
+      </div>
+    );
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-53px)]">
+        <Outlet />
+      </div>
+      <Footer />
+    </>
+  );
 };
 
 export default RouteGuard;

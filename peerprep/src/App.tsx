@@ -1,16 +1,17 @@
+import Layout from "@/components/custom/layout";
 import RouteGuard from "@/components/custom/route-guard";
 import { Toaster } from "@/components/ui/sonner";
 import ForgotPassword from "@/pages/ForgotPassword";
+import Homepage from "@/pages/Homepage/Homepage";
 import Login from "@/pages/Login";
+import Profile from "@/pages/Profile";
 import ResetPassword from "@/pages/ResetPassword";
 import SignUp from "@/pages/SignUp";
-import UserProfile from "@/pages/UserProfile";
 import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router";
-import Homepage from "@/pages/Homepage/Homepage";
 
 function App() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 gap-4">
+    <div className="min-h-dvh bg-gray-100">
       <Router>
         <Routes>
           <Route element={<RouteGuard />}>
@@ -18,8 +19,10 @@ function App() {
             <Route path="/sign-up" element={<SignUp />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password/:token" element={<ResetPassword />} />
-            <Route path="/" element={<Homepage />} />
-            <Route path="/user-profile" element={<UserProfile />} />
+            <Route element={<Layout />}>
+              <Route path="/" element={<Homepage />} />
+              <Route path="/profile" element={<Profile />} />
+            </Route>
           </Route>
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>

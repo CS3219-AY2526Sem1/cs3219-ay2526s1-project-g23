@@ -1,7 +1,5 @@
-import React from "react";
-import { useNavigate } from "react-router";
 import { logout } from "@/api/user-service";
-
+import Logo from "@/components/custom/app-logo";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +12,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import React from "react";
+import { Link, useNavigate } from "react-router";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -26,15 +26,15 @@ const Header: React.FC = () => {
   return (
     <header className="w-full text-slate-900 py-4 px-6 shadow-sm">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-indigo-600">PeerPrep</h1>
+        <Logo />
 
         <nav className="flex items-center space-x-4">
-          <a href="/" className="hover:underline text-indigo-600">
+          <Link to="/" className="hover:underline text-indigo-600">
             Home
-          </a>
-          <a href="/user-profile" className="hover:underline text-indigo-600">
-            User Profile
-          </a>
+          </Link>
+          <Link to="/profile" className="hover:underline text-indigo-600">
+            Profile
+          </Link>
 
           {/* Logout button with confirmation */}
           <AlertDialog>
@@ -45,12 +45,15 @@ const Header: React.FC = () => {
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  The current session will be terminated, and you will be logged out.
+                  The current session will be terminated, and you will be logged
+                  out.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={onLogout}>Log Out</AlertDialogAction>
+                <AlertDialogAction onClick={onLogout}>
+                  Log Out
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
