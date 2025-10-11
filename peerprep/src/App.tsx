@@ -1,4 +1,3 @@
-import Layout from "@/components/custom/layout";
 import RouteGuard from "@/components/custom/route-guard";
 import { Toaster } from "@/components/ui/sonner";
 import ForgotPassword from "@/pages/ForgotPassword";
@@ -19,10 +18,8 @@ function App() {
             <Route path="/sign-up" element={<SignUp />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password/:token" element={<ResetPassword />} />
-            <Route element={<Layout />}>
-              <Route path="/" element={<Homepage />} />
-              <Route path="/profile" element={<Profile />} />
-            </Route>
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/" element={<Homepage />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>

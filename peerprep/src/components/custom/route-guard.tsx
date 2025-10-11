@@ -1,6 +1,7 @@
 import { verifyToken } from "@/api/user-service";
 import Spinner from "@/components/custom/spinner";
 import Footer from "@/components/ui/Footer";
+import Header from "@/components/ui/Header";
 import { useEffect, useTransition } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 
@@ -15,13 +16,13 @@ const RouteGuard = () => {
     "/forgot-password",
     "/reset-password",
   ];
+  const isPublicRoute = publicRoutes.reduce(
+    (result, route) => result || pathname.startsWith(route),
+    false
+  );
 
   useEffect(() => {
     startTransition(async () => {
-      const isPublicRoute = publicRoutes.reduce(
-        (result, route) => result || pathname.startsWith(route),
-        false
-      );
       try {
         await verifyToken();
         if (isPublicRoute) {
@@ -46,7 +47,16 @@ const RouteGuard = () => {
   return (
     <>
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-53px)]">
-        <Outlet />
+        {isPublicRoute ? (
+          <Outlet />
+        ) : (
+          <>
+            <Header />
+            <div className="w-full min-h-[calc(100vh-121px)] bg-slate-50 text-slate-900 flex flex-col items-center justify-center">
+              <Outlet />
+            </div>
+          </>
+        )}
       </div>
       <Footer />
     </>

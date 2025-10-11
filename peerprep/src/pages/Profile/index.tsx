@@ -3,19 +3,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ChangePassword from "@/pages/Profile/ChangePassword";
-import { useEffect, useState } from "react";
+import UserStatistics from "@/pages/Profile/UserStatistics";
+import React from "react";
 
-const Profile = () => {
-  const [user, setUser] = useState({
-    username: "",
-    email: "",
-  });
-
-  useEffect(() => {
-    const username = localStorage.getItem("username") || "";
-    const email = localStorage.getItem("email") || "";
-    setUser({ username, email });
-  }, []);
+const Profile = React.memo(() => {
+  const username = localStorage.getItem("username") || "";
+  const email = localStorage.getItem("email") || "";
 
   return (
     <main className="flex-1 w-full py-10">
@@ -27,7 +20,7 @@ const Profile = () => {
               <div className="flex justify-center gap-16">
                 <Avatar className="w-44 h-44">
                   <AvatarFallback className="bg-indigo-200 text-6xl">
-                    {user.username.charAt(0).toUpperCase()}
+                    {username.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col justify-center space-y-6">
@@ -36,7 +29,7 @@ const Profile = () => {
                     <Input
                       className="min-w-72"
                       type="text"
-                      value={user.username}
+                      value={username}
                       readOnly
                     />
                   </div>
@@ -45,7 +38,7 @@ const Profile = () => {
                     <Input
                       className="min-w-72"
                       type="text"
-                      value={user.email}
+                      value={email}
                       readOnly
                     />
                   </div>
@@ -55,9 +48,10 @@ const Profile = () => {
           </Card>
         </section>
         <ChangePassword />
+        <UserStatistics />
       </div>
     </main>
   );
-};
+});
 
 export default Profile;
