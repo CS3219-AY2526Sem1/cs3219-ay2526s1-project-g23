@@ -23,9 +23,18 @@ const attemptController = {
             // Increment the noOfAttempts in Question
             await Question.findByIdAndUpdate(questionId, { $inc: { noOfAttempts: 1 } });
 
-            // // Update user stats (Need to fix)
-            // await User.findByIdAndUpdate(userId, { $inc: { "stats.questionsCompleted": 1 } });
-
+            // Update user stats 
+            try {
+                const response = await fetch(`http://localhost:3001/users/${userId}/update-stats`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ difficulty, timeTakenSeconds })
+                });
+                const data = await response.json();
+                console.log("User service response:", data);
+            } catch (notifyErr) {
+                console.error("Failed to notify user-service:", notifyErr.message);
+            }
             res.status(201).json({
                 message: 'Attempt recorded successfully',
                 attempt: newAttempt

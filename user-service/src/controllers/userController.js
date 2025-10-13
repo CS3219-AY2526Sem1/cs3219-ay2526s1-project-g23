@@ -291,11 +291,12 @@ const userController = {
       });
     }
   },
+
   //Get user stats
   getUserStats: async (req, res) => {
     try {
       const { userId } = req.params;
-      const requestingUser = req.user; 
+      const requestingUser = req.user;
 
       if (!requestingUser.isAdmin && requestingUser._id.toString() !== userId) {
         return res.status(403).json({
@@ -304,7 +305,8 @@ const userController = {
         });
       }
 
-      const user = await User.findById(userID);
+      const user = await User.findById(userId);
+
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -312,10 +314,10 @@ const userController = {
       res.status(200).json({
         userId: user._id,
         username: user.username,
-        email:user.email,
-        avgDifficulty:user.stats.avgDifficulty,
-        avgTime:user.stats.avgTime,
-        questionsCompleted:user.stats.questionsCompleted
+        email: user.email,
+        avgDifficulty: user.stats.avgDifficulty,
+        avgTime: user.stats.avgTime,
+        questionsCompleted: user.stats.questionsCompleted
       });
 
     } catch (err) {
@@ -325,6 +327,34 @@ const userController = {
         message: err.message
       });
     }
+  },
+
+  updateStats: async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { difficulty, timeTakenSeconds } = req.body;
+
+      const user = await User.findById(userId);
+      user.stats.questionsCompleted += 1;
+      user.stats.avgTime = ((user.stats.avgTime * (user.stats.questionsCompleted - 1)) + timeTakenSeconds) /
+        user.stats.questionsCompleted;
+
+      const diffMap = { Easy: 1, Medium: 2, Hard: 3 };
+      const diffValue = diffMap[difficulty] || 0;
+      user.stats.avgDifficulty = ((user.stats.avgDifficulty * (user.stats.questionsCompleted - 1)) + diffValue) /
+        user.stats.questionsCompleted;
+
+      await user.save();
+      res.json({ message: "User stats updated successfully", stats: user.stats });
+
+    } catch (err) {
+      console.error('Error updating user stats:', err);
+      res.status(500).json({
+        error: 'Failed to update user statistics',
+        message: err.message
+      });
+    }
+
   }
 };
 
