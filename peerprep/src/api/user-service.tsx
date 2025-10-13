@@ -85,7 +85,7 @@ export const verifyToken = async () => {
 export const logout = async () => {
   try {
     await userServiceRequest({
-      url: "/user/logout",
+      url: "/users/logout",
       method: "post",
     });
   } catch (error) {
@@ -98,4 +98,15 @@ export const logout = async () => {
     localStorage.removeItem("isAdmin");
     localStorage.removeItem("statistics");
   }
+};
+
+export const getUserStats = async (userId: string) => {
+  const stats = await userServiceRequest({
+    url: `/users/${userId}/stats`,
+    method: "get",
+    includeToken: true,
+  });
+  // Optionally cache the latest stats locally
+  localStorage.setItem("statistics", JSON.stringify(stats));
+  return stats;
 };
