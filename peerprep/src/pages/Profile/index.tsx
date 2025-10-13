@@ -2,11 +2,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import AttemptHistory from "@/pages/Profile/AttemptHistory";
 import ChangePassword from "@/pages/Profile/ChangePassword";
-import UserStatistics from "@/pages/Profile/UserStatistics";
-import React from "react";
 
-const Profile = React.memo(() => {
+const Profile = () => {
   const username = localStorage.getItem("username") || "";
   const email = localStorage.getItem("email") || "";
 
@@ -48,10 +47,10 @@ const Profile = React.memo(() => {
           </Card>
         </section>
         <ChangePassword />
-        <UserStatistics />
+        <AttemptHistory />
       </div>
     </main>
   );
-});
+};
 
 export default Profile;

@@ -42,3 +42,16 @@ export const getPopularQuestions = async (limit = 10) => {
     data: { limit },
   });
 };
+
+/**
+ * Get attempts by user
+ */
+export const getUserAttempts = async () => {
+  const userId = localStorage.getItem("userId");
+  return await request({
+    url: `/attempts`,
+    port: QUESTION_SERVICE_PORT,
+    method: "get",
+    data: { userId },
+  });
+};
