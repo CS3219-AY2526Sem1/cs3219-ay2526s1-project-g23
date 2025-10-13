@@ -10,5 +10,6 @@ router.patch('/:userId', authMiddleware, userController.updateUser);
 router.patch('/:userId/privilege', authMiddleware, userController.updateUserPrivilege);
 router.delete('/:userId', authMiddleware, userController.deleteUser);
 router.post('/logout', userController.logout);
+router.post('/:userId/update-stats', userController.updateStats);
 
 export default router;
