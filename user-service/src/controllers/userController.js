@@ -1,4 +1,3 @@
-import Attempt from '../../../question-service/src/models/Attempt.js';
 import User from '../models/User.js';
 
 const userController = {
@@ -305,25 +304,18 @@ const userController = {
         });
       }
 
-      // Aggregate stats from attempts
-      const stats = await Attempt.aggregate([
-        { $match: { userId: new mongoose.Types.ObjectId(userId) } },
-        {
-          $group: {
-            _id: '$difficulty',
-            attempts: { $sum: 1 },
-            avgTime: { $avg: '$timeTakenSeconds' }
-          }
-        }
-      ]);
-
-      // Total attempts
-      const totalAttempts = stats.reduce((sum, s) => sum + s.attempts, 0);
+      const user = await User.findById(userID);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
 
       res.status(200).json({
-        userId,
-        totalAttempts,
-        breakdownByDifficulty: stats
+        userId: user._id,
+        username: user.username,
+        email:user.email,
+        avgDifficulty:user.stats.avgDifficulty,
+        avgTime:user.stats.avgTime,
+        questionsCompleted:user.stats.questionsCompleted
       });
 
     } catch (err) {

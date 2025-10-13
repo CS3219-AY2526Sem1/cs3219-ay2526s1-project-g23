@@ -6,6 +6,12 @@ const attemptController = {
         try {
             const { userId, questionId, timeTakenSeconds, difficulty } = req.body;
 
+            // Check if question exists
+            const question = await Question.findById(questionId);
+            if (!question) {
+                return res.status(404).json({ error: "Question not found" });
+            }
+
             // Create a new attempt record
             const newAttempt = await Attempt.create({
                 userId,
@@ -16,6 +22,9 @@ const attemptController = {
 
             // Increment the noOfAttempts in Question
             await Question.findByIdAndUpdate(questionId, { $inc: { noOfAttempts: 1 } });
+
+            // // Update user stats (Need to fix)
+            // await User.findByIdAndUpdate(userId, { $inc: { "stats.questionsCompleted": 1 } });
 
             res.status(201).json({
                 message: 'Attempt recorded successfully',
