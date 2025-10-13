@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import React, { useState } from "react";
 import PopularQuestions from "./PopularQuestions";
+import UserStatsSection from "./UserStatsSection";
 
 const HomePage: React.FC = () => {
   const [questionType, setQuestionType] = useState<string | undefined>();
@@ -117,43 +118,8 @@ const HomePage: React.FC = () => {
           </Card>
         </section>
         <section>
-          <h2 className="text-2xl font-semibold mb-6">Your Statistics</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <Card className="p-6">
-              <CardHeader>
-                <CardTitle className="text-lg text-slate-500">
-                  Questions Attempted
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold mt-2">42</p>
-              </CardContent>
-            </Card>
-
-            <Card className="p-6">
-              <CardHeader>
-                <CardTitle className="text-lg text-slate-500">
-                  Average Time per Question
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold mt-2">8m 15s</p>
-              </CardContent>
-            </Card>
-
-            <Card className="p-6">
-              <CardHeader>
-                <CardTitle className="text-lg text-slate-500">
-                  Average Difficulty Level
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold mt-2">Medium</p>
-              </CardContent>
-            </Card>
-          </div>
+          <UserStatsSection />
         </section>
-
         <section>
           <PopularQuestions />
         </section>

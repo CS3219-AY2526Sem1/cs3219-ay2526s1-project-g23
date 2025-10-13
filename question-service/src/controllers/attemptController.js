@@ -6,6 +6,12 @@ const attemptController = {
         try {
             const { userId, questionId, timeTakenSeconds, difficulty } = req.body;
 
+            // Check if question exists
+            const question = await Question.findById(questionId);
+            if (!question) {
+                return res.status(404).json({ error: "Question not found" });
+            }
+
             // Create a new attempt record
             const newAttempt = await Attempt.create({
                 userId,
@@ -17,6 +23,18 @@ const attemptController = {
             // Increment the noOfAttempts in Question
             await Question.findByIdAndUpdate(questionId, { $inc: { noOfAttempts: 1 } });
 
+            // Update user stats 
+            try {
+                const response = await fetch(`http://localhost:3001/users/${userId}/update-stats`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ difficulty, timeTakenSeconds })
+                });
+                const data = await response.json();
+                console.log("User service response:", data);
+            } catch (notifyErr) {
+                console.error("Failed to notify user-service:", notifyErr.message);
+            }
             res.status(201).json({
                 message: 'Attempt recorded successfully',
                 attempt: newAttempt

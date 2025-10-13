@@ -85,7 +85,7 @@ export const verifyToken = async () => {
 export const logout = async () => {
   try {
     await userServiceRequest({
-      url: "/user/logout",
+      url: "/users/logout",
       method: "post",
     });
   } catch (error) {
@@ -101,12 +101,14 @@ export const logout = async () => {
 };
 
 export const getUserStats = async (userId: string) => {
-  const response = await userServiceRequest({
+  const stats = await userServiceRequest({
     url: `/users/${userId}/stats`,
     method: "get",
     includeToken: true,
   });
-  return response;
+  // Optionally cache the latest stats locally
+  localStorage.setItem("statistics", JSON.stringify(stats));
+  return stats;
 };
 
 export const changePassword = async (data: {

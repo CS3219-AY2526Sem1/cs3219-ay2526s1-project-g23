@@ -69,9 +69,9 @@ const questionController = {
             //Default number of questions shown is 10
             const { limit = 10 } = req.query;
 
-            // Find questions sorted by attemptCount descending
+            // Find questions sorted by noOfAttempts descending
             const questions = await Question.find()
-                .sort({ attemptCount: -1 })
+                .sort({ noOfAttempts: -1 })
                 .limit(parseInt(limit));
 
             res.status(200).json(questions);
