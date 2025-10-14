@@ -110,3 +110,16 @@ export const getUserStats = async (userId: string) => {
   localStorage.setItem("statistics", JSON.stringify(stats));
   return stats;
 };
+
+export const changePassword = async (data: {
+  currentPassword: string;
+  newPassword: string;
+}) => {
+  const { message } = await userServiceRequest({
+    url: "/auth/change-password",
+    method: "post",
+    data,
+    includeToken: true,
+  });
+  return message;
+};

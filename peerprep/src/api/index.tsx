@@ -30,7 +30,7 @@ export const request = async ({
     const response = await axios(requestOptions);
     return response.data;
   } catch (error) {
-    if (error?.response?.data) {
+    if (error?.response?.data?.message) {
       throw new Error(error.response.data.message);
     }
     throw error;
