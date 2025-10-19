@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,7 +8,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import Editor from "@monaco-editor/react";
 import DOMPurify from "dompurify";
+import { useRef } from "react";
 import { useParams } from "react-router";
 
 // TODO: Remove static content
@@ -47,9 +50,19 @@ const content = `<p>You are given an integer array <code>height</code> of length
 	<li><code>0 &lt;= height[i] &lt;= 10<sup>4</sup></code></li>
 </ul>
 `;
+const partner = "John Doe";
 
 const Collaboration = () => {
   const { session } = useParams();
+  const editorRef = useRef(null);
+
+  // @ts-ignore
+  const onEditorDidMount = (editor, monaco) => {
+    editor.addCommand(monaco.KeyCode.F1, () => {
+      // disable the command palette
+    });
+    editorRef.current = editor;
+  };
 
   return (
     <div className="w-full h-[calc(100vh-121px)] grid grid-cols-2 gap-6 py-10 px-6">
@@ -66,7 +79,7 @@ const Collaboration = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[calc(100vh-313px)] p-3 bg-slate-50 rounded-md border">
+          <ScrollArea className="h-[calc(100vh-340px)] p-3 bg-slate-50 rounded-md border">
             <div
               className="prose prose-sm [&>*]:text-wrap"
               dangerouslySetInnerHTML={{
@@ -76,7 +89,29 @@ const Collaboration = () => {
           </ScrollArea>
         </CardContent>
       </Card>
-      <Card className="col-span-1"></Card>
+      <div className="flex flex-col gap-4 col-span-1">
+        <div className="flex justify-between items-center">
+          <div>
+            Collaborating With: <span className="font-medium">{partner}</span>
+          </div>
+          <Button>End Session</Button>
+        </div>
+        <Card className="h-full">
+          <CardContent className="h-full px-1">
+            <Editor
+              defaultLanguage="python"
+              defaultValue={`# Write your solution here\n\n`}
+              options={{
+                minimap: { enabled: false },
+                stickyScroll: { enabled: false },
+                scrollBeyondLastLine: false,
+                contextmenu: false,
+              }}
+              onMount={onEditorDidMount}
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
