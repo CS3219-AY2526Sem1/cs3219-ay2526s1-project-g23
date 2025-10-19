@@ -1,5 +1,6 @@
 import RouteGuard from "@/components/custom/route-guard";
 import { Toaster } from "@/components/ui/sonner";
+import Collaboration from "@/pages/Collaboration";
 import ForgotPassword from "@/pages/ForgotPassword";
 import Homepage from "@/pages/Homepage/Homepage";
 import Login from "@/pages/Login";
@@ -20,6 +21,7 @@ function App() {
             <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/" element={<Homepage />} />
+            <Route path="/collaborate/:session" element={<Collaboration />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
