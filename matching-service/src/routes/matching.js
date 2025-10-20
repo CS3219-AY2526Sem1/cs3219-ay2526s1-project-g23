@@ -21,5 +21,4 @@ router.get('/status', authMiddleware, matchingController.getMatchStatus);
 
 // Get queue statistics (admin or public)
 router.get('/stats', matchingController.getQueueStats);
-
 export default router;

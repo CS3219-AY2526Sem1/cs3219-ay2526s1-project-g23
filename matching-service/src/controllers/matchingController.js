@@ -32,7 +32,7 @@ class MatchingController {
       }
       
       // Check if user already has an active request in Redis (not MongoDB)
-      const existingRequest = await redisService.redis.exists(redisService.getActiveRequestKey(userId));
+      const existingRequest = await redisService.hasActiveRequest(userId);
       
       if (existingRequest) {
         return res.status(409).json({
@@ -158,6 +158,8 @@ class MatchingController {
     try {
       const sessionCriteria = this.resolveSessionCriteria(criteria1, criteria2);
       
+      // Fetch a question for the session
+      const questionId = await this.getQuestionId(sessionCriteria);
       const participants = [
         {
           userId: userId1,
@@ -175,6 +177,7 @@ class MatchingController {
       const session = new MatchSession({
         participants,
         sessionCriteria,
+        questionId: questionId,
         collaborationRoom: {
           roomId: this.generateRoomId(),
           createdAt: new Date()
@@ -604,6 +607,73 @@ class MatchingController {
   estimateWaitTime(topic, position) {
     // Simple estimation: 5 seconds per position ahead, max 30 seconds
     return Math.min(30, Math.max(5, position * 5));
+  }
+
+  // Fetch a question from the question service based on session criteria and user history
+  async getQuestionId(sessionCriteria, userId1, userId2) {
+    try {
+      const { topic, difficulty } = sessionCriteria;
+      
+      console.log(`Fetching question from question service: topic=${topic}, difficulty=${difficulty}, users=${userId1},${userId2}`);
+      
+      const questionServiceUrl = process.env.QUESTION_SERVICE_URL || 'http://localhost:3002';
+      
+      // Fetch questions for the given topic and difficulty
+      const response = await fetch(`${questionServiceUrl}/questions?type=${encodeURIComponent(topic)}&difficulty=${encodeURIComponent(difficulty)}`);
+      
+      if (!response.ok) {
+        throw new Error(`Question service returned ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.questions || data.questions.length === 0) {
+        console.warn(`No questions found for topic: ${topic}, difficulty: ${difficulty}`);
+        return null;
+      }
+      
+      // Fetch question history for both users
+      const userHistory1 = await this.getUserQuestionHistory(userId1);
+      const userHistory2 = await this.getUserQuestionHistory(userId2);
+      
+      const questions = data.questions;
+      
+      // Try strategies in order of preference
+      const strategies = [
+        {
+          name: 'questionsNotDoneByBoth',
+          selector: (q, h1, h2) => !h1.includes(q._id) && !h2.includes(q._id),
+          message: 'Selected question not done by both users'
+        },
+        {
+          name: 'questionsNotDoneByOne',
+          selector: (q, h1, h2) => !h1.includes(q._id) || !h2.includes(q._id),
+          message: 'Selected question not done by one user'
+        },
+        {
+          name: 'anyQuestion',
+          selector: () => true, // Select all questions
+          message: 'All questions done by both users, selected random'
+        }
+      ];
+      
+      for (const strategy of strategies) {
+        const filteredQuestions = questions.filter(question => 
+          strategy.selector(question, userHistory1, userHistory2)
+        );
+        
+        if (filteredQuestions.length > 0) {
+          const randomIndex = Math.floor(Math.random() * filteredQuestions.length);
+          const selectedQuestion = filteredQuestions[randomIndex];
+          console.log(`${strategy.message}: ${selectedQuestion._id}`);
+          return selectedQuestion._id;
+        }
+      }
+      
+    } catch (err) {
+      console.error('Error fetching random question from question service:', err);
+      return null;
+    }
   }
 }
 
