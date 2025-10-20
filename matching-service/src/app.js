@@ -13,7 +13,8 @@ dotenv.config();
 const app = express();
 const server = createServer(app);
 
-const PORT = process.env.PORT || 3002;
+// Port configuration
+const PORT = process.env.PORT || 3003;
 
 const corsOptions = {
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -67,18 +68,18 @@ async function connectToDatabase() {
     await mongoose.connect(mongoUri, {
     });
     
-    console.log('✅ Connected to MongoDB successfully');
+    console.log(' Connected to MongoDB successfully');
     
     mongoose.connection.on('error', (err) => {
-      console.error('❌ MongoDB connection error:', err);
+      console.error(' MongoDB connection error:', err);
     });
     
     mongoose.connection.on('disconnected', () => {
-      console.log('📡 MongoDB disconnected');
+      console.log(' MongoDB disconnected');
     });
     
   } catch (err) {
-    console.error('❌ Failed to connect to MongoDB:', err);
+    console.error(' Failed to connect to MongoDB:', err);
     process.exit(1);
   }
 }
@@ -94,7 +95,7 @@ async function initializeRedis() {
       } catch (err) {
         console.error('Cleanup job error:', err);
       }
-    }, 60000);
+    }, 30000);
     
   } catch (err) {
     console.error(' Failed to connect to Redis:', err);

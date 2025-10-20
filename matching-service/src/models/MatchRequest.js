@@ -28,8 +28,8 @@ const matchRequestSchema = new mongoose.Schema({
     },
     language: {
       type: String,
-      default: 'javascript',
-      enum: ['javascript', 'python', 'java', 'cpp', 'c']
+      default: 'python',
+      enum: ['python']
     }
   },
   status: { 
@@ -47,7 +47,7 @@ const matchRequestSchema = new mongoose.Schema({
   },
   expiresAt: { 
     type: Date,
-    default: () => new Date(Date.now() + 5 * 60 * 1000) // 5 minutes from now
+    default: () => new Date(Date.now() + 30 * 1000) // 30 seconds from now
   },
   matchedWith: { 
     type: mongoose.Schema.Types.ObjectId, 

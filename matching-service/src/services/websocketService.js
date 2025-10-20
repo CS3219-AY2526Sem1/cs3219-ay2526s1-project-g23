@@ -1,5 +1,4 @@
 import { Server } from 'socket.io';
-import jwt from 'jsonwebtoken';
 import redisService from './redisService.js';
 
 class WebSocketService {
@@ -25,7 +24,7 @@ class WebSocketService {
   }
   
   setupMiddleware() {
-    this.io.use((socket, next) => {
+    this.io.use(async (socket, next) => {
       try {
         const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
         
@@ -33,19 +32,40 @@ class WebSocketService {
           return next(new Error('Authentication error: No token provided'));
         }
         
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        // Delegate token verification to user-service
+        const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3001';
+        
+        const verifyResponse = await fetch(`${userServiceUrl}/api/auth/verify-token`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!verifyResponse.ok) {
+          const errorData = await verifyResponse.json().catch(() => ({}));
+          return next(new Error(`Authentication error: ${errorData.message || 'Token verification failed'}`));
+        }
+        
+        const verifyResult = await verifyResponse.json();
         
         socket.user = {
-          userId: decoded.userId || decoded.id,
-          username: decoded.username,
-          email: decoded.email,
-          isAdmin: decoded.isAdmin || false
+          userId: verifyResult.user.id,
+          username: verifyResult.user.username,
+          email: verifyResult.user.email,
+          isAdmin: verifyResult.user.isAdmin || false
         };
         
         next();
       } catch (err) {
         console.error('WebSocket auth error:', err);
-        next(new Error('Authentication error: Invalid token'));
+        
+        if (err.code === 'ECONNREFUSED' || err.name === 'FetchError') {
+          next(new Error('Authentication error: User service unavailable'));
+        } else {
+          next(new Error('Authentication error: Token verification failed'));
+        }
       }
     });
   }

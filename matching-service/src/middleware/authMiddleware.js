@@ -1,6 +1,4 @@
-import jwt from 'jsonwebtoken';
-
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   try {
     // Get token from Authorization header
     const authHeader = req.header('Authorization');
@@ -12,34 +10,46 @@ const authMiddleware = (req, res, next) => {
       });
     }
     
-    const token = authHeader.substring(7); 
+    // Delegate token verification to user-service
+    const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3001';
     
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const verifyResponse = await fetch(`${userServiceUrl}/api/auth/verify-token`, {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json'
+      }
+    });
     
-    // Add user info to request
+    if (!verifyResponse.ok) {
+      const errorData = await verifyResponse.json().catch(() => ({}));
+      return res.status(verifyResponse.status).json({
+        error: errorData.error || 'Authentication failed',
+        message: errorData.message || 'Token verification failed'
+      });
+    }
+    
+    const verifyResult = await verifyResponse.json();
+    
+    // Add user info to request from user-service response
     req.user = {
-      userId: decoded.userId || decoded.id,
-      username: decoded.username,
-      email: decoded.email,
-      isAdmin: decoded.isAdmin || false
+      userId: verifyResult.user.id,
+      username: verifyResult.user.username,
+      email: verifyResult.user.email,
+      isAdmin: verifyResult.user.isAdmin || false,
+      preferences: verifyResult.user.preferences,
+      stats: verifyResult.user.stats
     };
     
     next();
   } catch (err) {
     console.error('Auth middleware error:', err);
     
-    if (err.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        error: 'Invalid token',
-        message: 'The provided token is invalid'
-      });
-    }
-    
-    if (err.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        error: 'Token expired',
-        message: 'The provided token has expired'
+    // Handle network/service communication errors
+    if (err.code === 'ECONNREFUSED' || err.name === 'FetchError') {
+      return res.status(503).json({
+        error: 'Service unavailable',
+        message: 'User authentication service is temporarily unavailable'
       });
     }
     

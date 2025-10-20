@@ -34,7 +34,7 @@ const matchSessionSchema = new mongoose.Schema({
     },
     language: {
       type: String,
-      default: 'javascript'
+      default: 'python'
     }
   },
   

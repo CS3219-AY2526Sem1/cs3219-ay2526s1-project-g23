@@ -47,7 +47,7 @@ class RedisService {
     return `matching:notifications:${userId}`;
   }
   
-  async addToQueue(userId, topic, proficiency, difficulty, language = 'javascript') {
+  async addToQueue(userId, topic, proficiency, difficulty, language = 'python') {
     const queueKey = this.getQueueKey(topic);
     const activeKey = this.getActiveRequestKey(userId);
     const timestamp = Date.now();
@@ -70,7 +70,7 @@ class RedisService {
     
     // Store active request data with expiration
     pipeline.hmset(activeKey, requestData);
-    pipeline.expire(activeKey, 300); // 5 minutes TTL
+    pipeline.expire(activeKey, 30); // 30 seconds TTL
     
     // Update queue statistics
     pipeline.hincrby('matching:stats', 'totalActive', 1);
@@ -178,6 +178,134 @@ class RedisService {
     };
   }
   
+  // Match Proposal Management
+  getMatchProposalKey(proposalId) {
+    return `matching:proposal:${proposalId}`;
+  }
+  
+  getUserProposalKey(userId) {
+    return `matching:user_proposal:${userId}`;
+  }
+  
+  // Create a match proposal in Redis
+  async createMatchProposal(user1Id, user2Id, criteria1, criteria2, sessionCriteria) {
+    const proposalId = `${user1Id}_${user2Id}_${Date.now()}`;
+    const proposalKey = this.getMatchProposalKey(proposalId);
+    
+    const proposal = {
+      proposalId,
+      user1Id,
+      user2Id,
+      criteria1: JSON.stringify(criteria1),
+      criteria2: JSON.stringify(criteria2),
+      sessionCriteria: JSON.stringify(sessionCriteria),
+      createdAt: Date.now(),
+      user1Accepted: false,
+      user2Accepted: false,
+      status: 'pending'
+    };
+    
+    // Store proposal with 60-second TTL
+    await this.redis.hset(proposalKey, proposal);
+    await this.redis.expire(proposalKey, 60);
+    
+    // Map users to their proposal
+    await this.redis.setex(this.getUserProposalKey(user1Id), 60, proposalId);
+    await this.redis.setex(this.getUserProposalKey(user2Id), 60, proposalId);
+    
+    return proposalId;
+  }
+  
+  // Get match proposal by ID
+  async getMatchProposal(proposalId) {
+    const proposalKey = this.getMatchProposalKey(proposalId);
+    const proposal = await this.redis.hgetall(proposalKey);
+    
+    if (!proposal.proposalId) {
+      return null;
+    }
+    
+    return {
+      ...proposal,
+      criteria1: JSON.parse(proposal.criteria1),
+      criteria2: JSON.parse(proposal.criteria2),
+      sessionCriteria: JSON.parse(proposal.sessionCriteria),
+      createdAt: parseInt(proposal.createdAt),
+      user1Accepted: proposal.user1Accepted === 'true',
+      user2Accepted: proposal.user2Accepted === 'true'
+    };
+  }
+  
+  // Get user's active proposal
+  async getUserActiveProposal(userId) {
+    const proposalId = await this.redis.get(this.getUserProposalKey(userId));
+    if (!proposalId) {
+      return null;
+    }
+    return await this.getMatchProposal(proposalId);
+  }
+  
+  // Accept a match proposal
+  async acceptMatchProposal(userId, proposalId) {
+    const proposalKey = this.getMatchProposalKey(proposalId);
+    const proposal = await this.getMatchProposal(proposalId);
+    
+    if (!proposal) {
+      return { success: false, error: 'Proposal not found or expired' };
+    }
+    
+    if (proposal.status !== 'pending') {
+      return { success: false, error: 'Proposal is no longer pending' };
+    }
+    
+    // Mark user as accepted
+    if (userId === proposal.user1Id) {
+      await this.redis.hset(proposalKey, 'user1Accepted', 'true');
+      proposal.user1Accepted = true;
+    } else if (userId === proposal.user2Id) {
+      await this.redis.hset(proposalKey, 'user2Accepted', 'true');
+      proposal.user2Accepted = true;
+    } else {
+      return { success: false, error: 'User not part of this proposal' };
+    }
+    
+    // Check if both users accepted
+    if (proposal.user1Accepted && proposal.user2Accepted) {
+      await this.redis.hset(proposalKey, 'status', 'accepted');
+      return { success: true, bothAccepted: true, proposal };
+    }
+    
+    return { success: true, bothAccepted: false, proposal };
+  }
+  
+  // Decline a match proposal
+  async declineMatchProposal(userId, proposalId) {
+    const proposalKey = this.getMatchProposalKey(proposalId);
+    const proposal = await this.getMatchProposal(proposalId);
+    
+    if (!proposal) {
+      return { success: false, error: 'Proposal not found or expired' };
+    }
+    
+    if (proposal.status !== 'pending') {
+      return { success: false, error: 'Proposal is no longer pending' };
+    }
+    
+    // Mark proposal as declined
+    await this.redis.hset(proposalKey, 'status', 'declined');
+    await this.redis.hset(proposalKey, 'declinedBy', userId);
+    
+    return { success: true, proposal };
+  }
+  
+  // Clean up proposal after processing
+  async cleanupMatchProposal(proposalId, user1Id, user2Id) {
+    const proposalKey = this.getMatchProposalKey(proposalId);
+    await this.redis.del(proposalKey);
+    await this.redis.del(this.getUserProposalKey(user1Id));
+    await this.redis.del(this.getUserProposalKey(user2Id));
+  }
+  
   // Clean up expired requests
   async cleanupExpiredRequests() {
     const topics = [
@@ -186,7 +314,7 @@ class RedisService {
       'arrays', 'strings', 'hash-table', 'two-pointers'
     ];
     
-    const expiredThreshold = Date.now() - (5 * 60 * 1000);
+    const expiredThreshold = Date.now() - (30 * 1000);
     let totalCleaned = 0;
     
     for (const topic of topics) {
