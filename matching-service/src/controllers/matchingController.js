@@ -159,7 +159,7 @@ class MatchingController {
       const sessionCriteria = this.resolveSessionCriteria(criteria1, criteria2);
       
       // Fetch a question for the session
-      const questionId = await this.getQuestionId(sessionCriteria);
+      const questionId = await this.getQuestionId(sessionCriteria, userId1, userId2);
       const participants = [
         {
           userId: userId1,
@@ -673,6 +673,31 @@ class MatchingController {
     } catch (err) {
       console.error('Error fetching random question from question service:', err);
       return null;
+    }
+  }
+
+  // Helper function to get user's question history
+  async getUserQuestionHistory(userId) {
+    try {
+      const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3001';
+
+      const response = await fetch(`${userServiceUrl}/api/users/${userId}/attempted-questionIds`, {
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        console.warn(`Failed to fetch attempts history for user ${userId}: ${response.status}`);
+        return [];
+      }
+      
+      const data = await response.json();
+      return data.completedQuestions || [];
+      
+    } catch (err) {
+      console.error(`Error fetching attempts history for user ${userId}:`, err);
+      return [];
     }
   }
 }

@@ -317,7 +317,8 @@ const userController = {
         email: user.email,
         avgDifficulty: user.stats.avgDifficulty,
         avgTime: user.stats.avgTime,
-        questionsCompleted: user.stats.questionsCompleted
+        questionsCompleted: user.stats.questionsCompleted,
+        attempts: user.attempts
       });
 
     } catch (err) {
@@ -354,7 +355,44 @@ const userController = {
         message: err.message
       });
     }
+  },
 
+  // Get only completed question IDs (more efficient for matching service)
+  getAttemptedQuestionIds: async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const requestingUser = req.user;
+
+      if (!requestingUser.isAdmin && requestingUser._id.toString() !== userId) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'You can only access your own question history'
+        });
+      }
+
+      const user = await User.findById(userId)
+        .populate('attempts', 'questionId -_id'); // Only get questionId field
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const completedQuestionIds = user.attempts.map(attempt => 
+        attempt.questionId.toString()
+      );
+
+      res.status(200).json({
+        completedQuestions: completedQuestionIds,
+        totalCompleted: completedQuestionIds.length
+      });
+
+    } catch (err) {
+      console.error('Error fetching completed questions:', err);
+      res.status(500).json({
+        error: 'Failed to retrieve completed questions',
+        message: err.message
+      });
+    }
   }
 };
 
