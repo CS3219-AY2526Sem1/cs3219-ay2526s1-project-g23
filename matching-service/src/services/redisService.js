@@ -178,6 +178,33 @@ class RedisService {
     };
   }
   
+  // Check if user has an active request
+  async hasActiveRequest(userId) {
+    const activeKey = this.getActiveRequestKey(userId);
+    const exists = await this.redis.exists(activeKey);
+    return exists === 1;
+  }
+  
+  // Get user's active request data
+  async getActiveRequest(userId) {
+    const activeKey = this.getActiveRequestKey(userId);
+    const requestData = await this.redis.hgetall(activeKey);
+    
+    if (!requestData.userId) {
+      return null;
+    }
+    
+    return {
+      userId: requestData.userId,
+      topic: requestData.topic,
+      proficiency: requestData.proficiency,
+      difficulty: requestData.difficulty,
+      language: requestData.language,
+      timestamp: parseInt(requestData.timestamp),
+      status: requestData.status
+    };
+  }
+  
   // Match Proposal Management
   getMatchProposalKey(proposalId) {
     return `matching:proposal:${proposalId}`;
