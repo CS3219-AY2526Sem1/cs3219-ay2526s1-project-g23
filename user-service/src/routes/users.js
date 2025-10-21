@@ -6,10 +6,12 @@ const router = express.Router();
 router.get('/:userId', authMiddleware, userController.getUser);
 router.get('/', authMiddleware, userController.getAllUsers);
 router.get('/:userId/stats', authMiddleware, userController.getUserStats);
+router.get('/:userId/attempted-questionIds', authMiddleware, userController.getAttemptedQuestionIds);
 router.patch('/:userId', authMiddleware, userController.updateUser);
 router.patch('/:userId/privilege', authMiddleware, userController.updateUserPrivilege);
 router.delete('/:userId', authMiddleware, userController.deleteUser);
 router.post('/logout', userController.logout);
 router.post('/:userId/update-stats', userController.updateStats);
+
 
 export default router;
