@@ -10,8 +10,12 @@ const userSchema = new mongoose.Schema({
   stats: {
     questionsCompleted: { type: Number, default: 0 },
     avgDifficulty: { type: Number, default: 0 },
-    avgTime: { type: Number, default: 0 }
+    avgTime: { type: Number, default: 0 },
   },
+  attempts: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "Attempt" 
+  }],
   lastLogin: { type: Date },
   passwordResetToken: { type: String, select: false },
   passwordResetExpires: { type: Date, select: false },

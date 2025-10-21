@@ -1,0 +1,34 @@
+{
+  "name": "matching-service",
+  "version": "1.0.0",
+  "description": "PeerPrep Matching Service - Redis-based user matching system",
+  "type": "module",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.19.2",
+    "ioredis": "^5.3.2",
+    "mongoose": "^7.6.3",
+    "redis": "^5.8.3",
+    "socket.io": "^4.7.5",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "matching",
+    "redis",
+    "websocket",
+    "microservice",
+    "peerprep"
+  ],
+  "author": "PeerPrep Team",
+  "license": "MIT"
+}
