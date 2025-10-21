@@ -3,12 +3,21 @@ import MatchSession from '../models/MatchSession.js';
 import redisService from '../services/redisService.js';
 
 class MatchingController {
+
+  constructor() {
+    this.submitMatchRequest = this.submitMatchRequest.bind(this);
+    this.cancelMatchRequest = this.cancelMatchRequest.bind(this);
+    this.acceptMatchProposal = this.acceptMatchProposal.bind(this);
+    this.declineMatchProposal = this.declineMatchProposal.bind(this);
+    this.getMatchStatus = this.getMatchStatus.bind(this);
+    this.getQueueStats = this.getQueueStats.bind(this);
+  }
   
   // Proficiency level mapping for compatibility checking
   static PROFICIENCY_LEVELS = {
     'beginner': 0,
     'intermediate': 1,
-    'pro': 2
+    'advanced': 2
   };
   
   // Difficulty level mapping for selection (lower difficulty wins)

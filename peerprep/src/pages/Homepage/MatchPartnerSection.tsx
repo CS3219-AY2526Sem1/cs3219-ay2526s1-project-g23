@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,31 +24,21 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useForm, Controller } from "react-hook-form";
-
-const topicLabels: Record<string, string> = {
-  "binary-search": "Binary Search",
-  "linked-list": "Linked List",
-  stack: "Stack",
-  graph: "Graph",
-  sorting: "Sorting",
-  tree: "Tree",
-  "dynamic-programming": "Dynamic Programming",
-  greedy: "Greedy",
-};
-
-const difficultyLabels: Record<string, string> = {
-  easy: "Easy",
-  medium: "Medium",
-  hard: "Hard",
-};
-
-const proficiencyLabels: Record<string, string> = {
-  beginner: "Beginner",
-  intermediate: "Intermediate",
-  advanced: "Advanced",
-};
-
-const MAX_RETRIES = 2;
+import {
+  submitMatchRequest,
+  cancelMatchRequest,
+  getMatchStatus,
+  acceptMatchProposal,
+  declineMatchProposal,
+} from "@/api/matching-service";
+import AcceptMatchModal from "./AcceptMatchModal";
+import {
+  topicLabels,
+  difficultyLabels,
+  proficiencyLabels,
+  MAX_RETRIES,
+  POLL_INTERVAL_MS,
+} from "./matchingConstants";
 
 type FormValues = {
   questionType: string;
@@ -75,16 +65,18 @@ export default function MatchPartnerSection() {
   const [secondsLeft, setSecondsLeft] = useState(30);
   const [retryCount, setRetryCount] = useState(0);
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
+  const [isAcceptModalOpen, setIsAcceptModalOpen] = useState(false);
+  const [activeProposal, setActiveProposal] = useState<{
+    proposalId: string;
+    partnerId: string;
+    sessionCriteria: any;
+  } | null>(null);
+
+  const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setRetryCount(0);
   }, [questionType, difficulty, proficiency]);
-
-  const onSubmit = () => {
-    setIsModalOpen(true);
-    setSecondsLeft(30);
-    toast.info("Searching for a partner...");
-  };
 
   useEffect(() => {
     if (!isModalOpen) return;
@@ -106,18 +98,109 @@ export default function MatchPartnerSection() {
     return () => clearTimeout(timer);
   }, [isModalOpen, secondsLeft, retryCount, showTimeoutModal]);
 
-  const handleRetry = () => {
-    setRetryCount((prev) => prev + 1);
-    setSecondsLeft(30); // reset timer
-    setShowTimeoutModal(false);
-    setIsModalOpen(true);
-    toast.success("Retrying to find a match...");
+  useEffect(() => {
+    if (!isModalOpen) return;
+
+    const pollStatus = async () => {
+      try {
+        const res = await getMatchStatus();
+        console.log("Match status:", res);
+        if (res?.status === "proposal_pending") {
+          // Stop polling
+          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+
+          // Save proposal info and show accept/decline modal
+          setActiveProposal({
+            proposalId: res.proposalId,
+            partnerId: res.partnerId,
+            sessionCriteria: res.sessionCriteria,
+          });
+          setIsAcceptModalOpen(true); // New modal for accept/decline
+          setIsModalOpen(false); // Close the "searching" modal
+        }
+      } catch (err) {
+        console.error("Failed to get match status", err);
+      }
+    };
+
+    // Start polling
+    pollTimerRef.current = setInterval(pollStatus, POLL_INTERVAL_MS);
+
+    // Cleanup when modal closes
+    return () => {
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    };
+  }, [isModalOpen]);
+
+  const handleRetry = async () => {
+    try {
+      await submitMatchRequest({
+        topic: questionType,
+        difficulty: difficulty,
+        proficiency: proficiency,
+        language: "python", // optional, defaults to python
+      });
+      setRetryCount((prev) => prev + 1);
+      setSecondsLeft(30); // reset timer
+      setShowTimeoutModal(false);
+      setIsModalOpen(true);
+      toast.success("Retrying to find a match...");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to retry matching request");
+    }
   };
 
-  const handleCancel = () => {
-    setShowTimeoutModal(false);
-    setIsModalOpen(false);
-    setRetryCount(0);
+  const onSubmit = async () => {
+    try {
+      await submitMatchRequest({
+        topic: questionType,
+        difficulty: difficulty,
+        proficiency: proficiency,
+        language: "python", // optional, defaults to python
+      });
+      toast.info("Searching for a partner...");
+      setIsModalOpen(true);
+      setSecondsLeft(30);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to start matching request");
+    }
+  };
+
+  const handleCancel = async () => {
+    try {
+      await cancelMatchRequest();
+      toast.info("Match request cancelled");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel request");
+    } finally {
+      setShowTimeoutModal(false);
+      setIsModalOpen(false);
+      setRetryCount(0);
+    }
+  };
+
+  const handleAccept = async () => {
+    if (!activeProposal) return;
+    try {
+      await acceptMatchProposal(activeProposal.proposalId);
+      toast.success("You accepted the match! Waiting for partner...");
+      setIsAcceptModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to accept match");
+    }
+  };
+
+  const handleDecline = async () => {
+    if (!activeProposal) return;
+    try {
+      await declineMatchProposal(activeProposal.proposalId);
+      toast.info("You declined the match");
+      setIsAcceptModalOpen(false);
+      setActiveProposal(null);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -328,13 +411,7 @@ export default function MatchPartnerSection() {
             <span className="font-semibold">{secondsLeft}s</span>
           </p>
           <div>
-            <Button
-              variant="default"
-              onClick={() => {
-                setIsModalOpen(false);
-                setRetryCount(0);
-              }}
-            >
+            <Button variant="default" onClick={handleCancel}>
               Cancel
             </Button>
           </div>
@@ -372,6 +449,14 @@ export default function MatchPartnerSection() {
           </div>
         </DialogContent>
       </Dialog>
+      <AcceptMatchModal
+        isOpen={isAcceptModalOpen}
+        onClose={() => setIsAcceptModalOpen(false)}
+        partnerId={activeProposal?.partnerId ?? ""}
+        sessionCriteria={activeProposal?.sessionCriteria ?? {}}
+        onAccept={handleAccept}
+        onDecline={handleDecline}
+      />
     </section>
   );
 }
