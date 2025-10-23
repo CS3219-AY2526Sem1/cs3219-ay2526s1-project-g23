@@ -1,27 +1,43 @@
 import axios, { type AxiosRequestConfig } from "axios";
 
+const SERVICE_URLS: Record<string, string> = {
+  question: import.meta.env.VITE_QUESTION_SERVICE_URL,
+  user: import.meta.env.VITE_USER_SERVICE_URL,
+  matching: import.meta.env.VITE_MATCHING_SERVICE_URL,
+};
+
 export const request = async ({
-  url,
-  port,
+  service, // 'question' | 'user' | 'matching'
+  endpoint, // e.g., '/users/123/update-stats'
   method,
   data = {},
   includeToken = false,
-}: RequestOptions) => {
+}: {
+  service: keyof typeof SERVICE_URLS;
+  endpoint: string;
+  method: "get" | "post" | "put" | "delete";
+  data?: any;
+  includeToken?: boolean;
+}) => {
   try {
     const requestOptions: AxiosRequestConfig = {
-      url,
+      url: endpoint,
       method,
-      baseURL: `http://localhost:${port}`,
-      headers: {},
+      baseURL: SERVICE_URLS[service],
+      headers: {}, // ensure headers is always defined
     };
 
     if (includeToken) {
       const jwtToken = localStorage.getItem("jwtToken");
-      // @ts-ignore
-      requestOptions.headers.Authorization = `Bearer ${jwtToken}`;
+      if (jwtToken) {
+        requestOptions.headers = {
+          ...requestOptions.headers,
+          Authorization: `Bearer ${jwtToken}`,
+        };
+      }
     }
 
-    if (method == "get") {
+    if (method === "get") {
       requestOptions.params = data;
     } else {
       requestOptions.data = data;
@@ -29,7 +45,7 @@ export const request = async ({
 
     const response = await axios(requestOptions);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     if (error?.response?.data?.message) {
       throw new Error(error.response.data.message);
     }

@@ -1,0 +1,24 @@
+# Use Node.js Alpine image
+FROM node:18.18.0-alpine3.18
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -S app && adduser -S app -G app
+
+# Copy dependencies and install
+COPY package.json ./
+RUN npm install --production
+
+# Copy application code
+COPY . .
+
+# Copy production env file
+COPY .env.prod .env
+
+# Use non-root user
+USER app
+ENV NODE_ENV=production
+EXPOSE 8082
+
+# Start service
+CMD ["node", "src/app.js"]

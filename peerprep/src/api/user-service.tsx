@@ -1,18 +1,15 @@
 import { request } from "@/api";
 
-const userServiceRequest = async (
-  props: Pick<RequestOptions, "url" | "method" | "data" | "includeToken">
-) => {
-  return await request({ ...props, port: 3001 });
-};
+const BASE_SERVICE = "user"; // points to USER_SERVICE_URL via env
 
 export const signUp = async (data: {
   username: string;
   email: string;
   password: string;
 }) => {
-  const { message } = await userServiceRequest({
-    url: "/auth/signup",
+  const { message } = await request({
+    service: BASE_SERVICE,
+    endpoint: "/auth/signup",
     method: "post",
     data,
   });
@@ -20,8 +17,9 @@ export const signUp = async (data: {
 };
 
 export const forgotPassword = async (data: { email: string }) => {
-  await userServiceRequest({
-    url: "/auth/forgot-password",
+  await request({
+    service: BASE_SERVICE,
+    endpoint: "/auth/forgot-password",
     method: "post",
     data,
   });
@@ -31,8 +29,9 @@ export const resetPassword = async (data: {
   token: string;
   password: string;
 }) => {
-  const { message } = await userServiceRequest({
-    url: "/auth/reset-password",
+  const { message } = await request({
+    service: BASE_SERVICE,
+    endpoint: "/auth/reset-password",
     method: "post",
     data,
   });
@@ -44,8 +43,9 @@ export const login = async (data: {
   email?: string;
   password: string;
 }) => {
-  const { token, user } = await userServiceRequest({
-    url: "/auth/login",
+  const { token, user } = await request({
+    service: BASE_SERVICE,
+    endpoint: "/auth/login",
     method: "post",
     data,
   });
@@ -60,8 +60,9 @@ export const login = async (data: {
 
 export const verifyToken = async () => {
   try {
-    const { user } = await userServiceRequest({
-      url: "/auth/verify-token",
+    const { user } = await request({
+      service: BASE_SERVICE,
+      endpoint: "/auth/verify-token",
       method: "get",
       includeToken: true,
     });
@@ -84,8 +85,9 @@ export const verifyToken = async () => {
 
 export const logout = async () => {
   try {
-    await userServiceRequest({
-      url: "/users/logout",
+    await request({
+      service: BASE_SERVICE,
+      endpoint: "/users/logout",
       method: "post",
     });
   } catch (error) {
@@ -101,12 +103,12 @@ export const logout = async () => {
 };
 
 export const getUserStats = async (userId: string) => {
-  const stats = await userServiceRequest({
-    url: `/users/${userId}/stats`,
+  const stats = await request({
+    service: BASE_SERVICE,
+    endpoint: `/users/${userId}/stats`,
     method: "get",
     includeToken: true,
   });
-  // Optionally cache the latest stats locally
   localStorage.setItem("statistics", JSON.stringify(stats));
   return stats;
 };
@@ -115,8 +117,9 @@ export const changePassword = async (data: {
   currentPassword: string;
   newPassword: string;
 }) => {
-  const { message } = await userServiceRequest({
-    url: "/auth/change-password",
+  const { message } = await request({
+    service: BASE_SERVICE,
+    endpoint: "/auth/change-password",
     method: "post",
     data,
     includeToken: true,

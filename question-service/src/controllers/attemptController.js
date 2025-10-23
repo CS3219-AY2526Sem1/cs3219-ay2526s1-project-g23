@@ -27,8 +27,10 @@ const attemptController = {
 
       // Update user stats
       try {
+        const USER_SERVICE_URL = process.env.USER_SERVICE_URL;
+
         const response = await fetch(
-          `http://localhost:3001/users/${userId}/update-stats`,
+          `${USER_SERVICE_URL}/users/${userId}/update-stats`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
