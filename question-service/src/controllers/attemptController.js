@@ -68,6 +68,7 @@ const attemptController = {
           const question = await Question.findById(attempt.questionId);
           return {
             id: attempt._id,
+            questionId: attempt.questionId,
             title: question.title,
             topics: question.topics,
             difficulty: attempt.difficulty,
