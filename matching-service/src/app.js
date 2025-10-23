@@ -16,8 +16,21 @@ const server = createServer(app);
 // Port configuration
 const PORT = process.env.PORT || 3003;
 
+const allowedOrigins = [
+  'http://localhost:5173', // local frontend
+  'https://peerprep-frontend-6619362751.asia-southeast1.run.app' // deployed frontend
+];
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: function(origin, callback) {
+    // allow requests with no origin (like curl, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true

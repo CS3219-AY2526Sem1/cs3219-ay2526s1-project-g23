@@ -1,6 +1,5 @@
 import { request } from "./index";
 
-const MATCHING_PORT = 3003;
 const BASE_ROUTE = "/api/matching";
 
 export const submitMatchRequest = async (params: {

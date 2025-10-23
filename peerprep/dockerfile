@@ -1,0 +1,31 @@
+# Stage 1: Build Vite frontend
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy source code and build
+COPY . .
+RUN npm run build
+
+# Stage 2: Serve with Nginx
+FROM nginx:1.25-alpine
+
+# Copy build output
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Remove default Nginx config
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Expose port (Cloud Run sets $PORT at runtime)
+EXPOSE 8080
+
+# Use entrypoint to dynamically configure nginx
+CMD ["/entrypoint.sh"]
