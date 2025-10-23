@@ -6,8 +6,16 @@ const questionController = {
             const { type, difficulty, page = 1, limit = 10, search } = req.query;
             const query = {}
 
-            if (type) query.topic = type;              // Assuming your schema uses "topic"
-            if (difficulty) query.difficulty = difficulty;
+            if (type) {
+                const searchType = type.replace(/-/g, ' ');
+                query.topics = { 
+                    $in: [new RegExp(`^${searchType}$`, 'i')] // Case insensitive match
+                };  
+            }
+            if (difficulty) {
+                    query.difficulty = new RegExp(`^${difficulty}$`, 'i'); // Case-insensitive match
+            }
+
             if (search) {
                 query.$or = [
                     { title: new RegExp(search, 'i') },
