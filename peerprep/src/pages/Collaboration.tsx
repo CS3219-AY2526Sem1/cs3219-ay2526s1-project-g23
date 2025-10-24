@@ -10,8 +10,11 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Editor from "@monaco-editor/react";
 import DOMPurify from "dompurify";
-import { useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router";
+import { MonacoBinding } from "y-monaco";
+import { WebsocketProvider } from "y-websocket";
+import * as Y from "yjs";
 
 // TODO: Remove static content
 const title = "Container With Most Water";
@@ -54,14 +57,53 @@ const partner = "John Doe";
 
 const Collaboration = () => {
   const { session } = useParams();
-  const editorRef = useRef(null);
+  const ydocument = useMemo(() => new Y.Doc(), []);
+  const [editor, setEditor] = useState<any>(null);
+  const [provider, setProvider] = useState<WebsocketProvider | null>(null);
+
+  useEffect(() => {
+    const provider = new WebsocketProvider(
+      "ws://localhost:3004",
+      session as string,
+      ydocument
+    );
+    setProvider(provider);
+
+    return () => {
+      provider?.destroy();
+      ydocument.destroy();
+    };
+  }, [ydocument]);
+
+  useEffect(() => {
+    if (provider == null || editor == null) {
+      return;
+    }
+
+    const ytext = ydocument.getText("monaco");
+    if (ytext.length === 0) {
+      ytext.insert(0, `# Write your solution here \n\n\n`);
+      ytext.length; // Note: Required to update length after inserting
+    }
+
+    const binding = new MonacoBinding(
+      ytext,
+      editor.getModel(),
+      new Set([editor]),
+      provider.awareness
+    );
+
+    return () => {
+      binding.destroy();
+    };
+  }, [ydocument, provider, editor]);
 
   // @ts-ignore
   const onEditorDidMount = (editor, monaco) => {
     editor.addCommand(monaco.KeyCode.F1, () => {
-      // disable the command palette
+      // Note: Disable the command palette
     });
-    editorRef.current = editor;
+    setEditor(editor);
   };
 
   return (
@@ -100,7 +142,6 @@ const Collaboration = () => {
           <CardContent className="h-full px-1">
             <Editor
               defaultLanguage="python"
-              defaultValue={`# Write your solution here\n\n`}
               options={{
                 minimap: { enabled: false },
                 stickyScroll: { enabled: false },

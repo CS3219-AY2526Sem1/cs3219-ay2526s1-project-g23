@@ -35,6 +35,8 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.13",
+    "y-monaco": "^0.1.6",
+    "y-websocket": "^3.0.0",
     "zod": "^4.1.11"
   },
   "devDependencies": {

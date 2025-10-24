@@ -118,3 +118,25 @@
     @apply bg-background text-foreground;
   }
 }
+
+.yRemoteSelection {
+  background-color: theme(--color-indigo-200);
+}
+
+.yRemoteSelectionHead {
+  position: absolute;
+  border-left: theme(--color-indigo-500) solid 2px;
+  border-top: theme(--color-indigo-500) solid 2px;
+  border-bottom: theme(--color-indigo-500) solid 2px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.yRemoteSelectionHead::after {
+  position: absolute;
+  content: " ";
+  border: 3px solid theme(--color-indigo-500);
+  border-radius: 4px;
+  left: -4px;
+  top: -5px;
+}
