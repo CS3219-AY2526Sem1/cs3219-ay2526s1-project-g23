@@ -56,10 +56,23 @@ const content = `<p>You are given an integer array <code>height</code> of length
 const partner = "John Doe";
 
 const Collaboration = () => {
+  const username = localStorage.getItem("username") || "";
   const { session } = useParams();
   const ydocument = useMemo(() => new Y.Doc(), []);
   const [editor, setEditor] = useState<any>(null);
   const [provider, setProvider] = useState<WebsocketProvider | null>(null);
+  const [cursorStyleSheet, setCursorStyleSheet] =
+    useState<CSSStyleSheet | null>(null);
+
+  useEffect(() => {
+    const stylesheet = document.createElement("style");
+    document.head.appendChild(stylesheet);
+    setCursorStyleSheet(stylesheet.sheet);
+
+    return () => {
+      document.head.removeChild(stylesheet);
+    };
+  }, []);
 
   useEffect(() => {
     const provider = new WebsocketProvider(
@@ -80,23 +93,80 @@ const Collaboration = () => {
       return;
     }
 
-    const ytext = ydocument.getText("monaco");
-    if (ytext.length === 0) {
-      ytext.insert(0, `# Write your solution here \n\n\n`);
-      ytext.length; // Note: Required to update length after inserting
-    }
+    const awareness = provider.awareness;
+    awareness.setLocalState({ user: username });
+    awareness.on("update", addCursorStyle);
 
     const binding = new MonacoBinding(
-      ytext,
+      ydocument.getText("monaco"),
       editor.getModel(),
       new Set([editor]),
-      provider.awareness
+      awareness
     );
 
     return () => {
-      binding.destroy();
+      binding?.destroy();
     };
   }, [ydocument, provider, editor]);
+
+  const addCursorStyle = () => {
+    if (!provider) {
+      return;
+    }
+
+    provider?.awareness.getStates().forEach(({ user }, clientId) => {
+      if (user == username) {
+        return;
+      }
+
+      for (let i = cursorStyleSheet?.cssRules.length - 1; i >= 0; i--) {
+        if (cursorStyleSheet?.cssRules[i].cssText.includes(clientId)) {
+          cursorStyleSheet.deleteRule(i);
+        }
+      }
+
+      const COLOR_POOL = [
+        ["oklch(89.2% 0.058 10.001)", "oklch(64.5% 0.246 16.439)"], // rose
+        ["oklch(87% 0.065 274.039)", "oklch(58.5% 0.233 277.117)"], // indigo
+        ["oklch(88.2% 0.059 254.128)", "oklch(62.3% 0.214 259.815)"], // blue
+        ["oklch(93.8% 0.127 124.321)", "oklch(76.8% 0.233 130.85)"], // lime
+        ["oklch(92.4% 0.12 95.746)", "oklch(76.9% 0.188 70.08)"], // amber
+      ];
+      const color = COLOR_POOL[clientId % COLOR_POOL.length];
+
+      cursorStyleSheet?.insertRule(
+        `.yRemoteSelection-${clientId} {
+            background-color: ${color[0]};
+        }`,
+        cursorStyleSheet.cssRules.length
+      );
+      cursorStyleSheet?.insertRule(
+        `.yRemoteSelectionHead-${clientId} {
+            position: absolute;
+            border-left: ${color[1]} solid 2px;
+            border-top: ${color[1]} solid 2px;
+            border-bottom: ${color[1]} solid 2px;
+            height: 100%;
+            box-sizing: border-box;
+        }`,
+        cursorStyleSheet.cssRules.length
+      );
+      cursorStyleSheet?.insertRule(
+        `.yRemoteSelectionHead-${clientId}:hover::after {
+            position: absolute;
+            content: "${user}";
+            font-size: smaller;
+            background-color: ${color[1]};
+            color: oklch(98.5% 0 0);
+            border-radius: 4px;
+            padding: 0px 4px;
+            left: -2px;
+            top: -20px;
+        }`,
+        cursorStyleSheet.cssRules.length
+      );
+    });
+  };
 
   // @ts-ignore
   const onEditorDidMount = (editor, monaco) => {
