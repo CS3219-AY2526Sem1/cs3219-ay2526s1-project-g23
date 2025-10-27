@@ -570,11 +570,16 @@ class MatchingController {
   
   async getMatchSession(req, res) {
     try {
+      const { userId } = req.user;
       const { sessionId } = req.params;
 
       const session = await MatchSession.findById(sessionId);
       if (!session) {
         return res.status(404).json({ error: 'Session not found' });
+      }
+
+      if (!session.participants.find(({ userId: id }) => id.toString() == userId)) {
+        return res.status(500).json({ error: 'Failed to get match session' });
       }
 
       res.status(200).json(session);

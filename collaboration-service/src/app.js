@@ -1,4 +1,4 @@
-import { setupWSConnection } from "@y/websocket-server/utils";
+import { docs, setupWSConnection } from "@y/websocket-server/utils";
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
@@ -21,7 +21,30 @@ app.use(cors({ origin: "http://localhost:5173" }));
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
-wss.on("connection", setupWSConnection);
+wss.on("connection", (ws, req) => {
+  const docName = req.url.replace("/", "");
+  setupWSConnection(ws, req, { docName, gc: true });
+
+  const doc = docs.get(docName);
+  if (doc) {
+    doc.lastAccess = Date.now();
+    ws.on("message", () => {
+      doc.lastAccess = Date.now();
+    });
+  }
+});
+
+// Delete documents of stale/finished sessions
+setInterval(() => {
+  const now = Date.now();
+  docs.forEach((doc, name) => {
+    if (now - doc.lastAccess >= 15 * 60 * 1000) {
+      doc.destroy();
+      docs.delete(name);
+      console.log(`Deleted document for session ${name}`);
+    }
+  });
+}, 30 * 60 * 1000);
 
 const PORT = process.env.PORT || 3004;
 server.listen(PORT, () => {
