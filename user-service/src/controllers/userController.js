@@ -4,9 +4,8 @@ const userController = {
   getUser: async (req, res) => {
     try {
       const { userId } = req.params;
-      const requestingUser = req.user; // From auth middleware
+      const requestingUser = req.user; 
 
-      // Authorization check
       if (!requestingUser.isAdmin && requestingUser._id.toString() !== userId) {
         return res.status(403).json({
           error: 'Forbidden',
@@ -83,7 +82,6 @@ const userController = {
       const requestingUser = req.user;
       const updates = req.body;
 
-      // Authorization check
       if (!requestingUser.isAdmin && requestingUser._id.toString() !== userId) {
         return res.status(403).json({
           error: 'Forbidden',
@@ -148,7 +146,6 @@ const userController = {
       const { userId } = req.params;
       const { isAdmin } = req.body;
 
-      // Admin check
       if (!req.user.isAdmin) {
         return res.status(403).json({
           error: 'Forbidden',
@@ -195,7 +192,6 @@ const userController = {
       const { userId } = req.params;
       const requestingUser = req.user;
 
-      // Authorization check
       if (!requestingUser.isAdmin && requestingUser.userId !== userId) {
         return res.status(403).json({
           error: 'Forbidden',
@@ -203,7 +199,6 @@ const userController = {
         });
       }
 
-      // Prevent admin self-deletion
       if (requestingUser.isAdmin && requestingUser._id.toString() === userId) {
         return res.status(400).json({
           error: 'Invalid operation',
@@ -298,13 +293,6 @@ const userController = {
       const { userId } = req.params;
       const requestingUser = req.user;
 
-      if (!requestingUser.isAdmin && requestingUser._id.toString() !== userId) {
-        return res.status(403).json({
-          error: 'Forbidden',
-          message: 'You can only access your own profile'
-        });
-      }
-
       const user = await User.findById(userId);
 
       if (!user) {
@@ -317,7 +305,8 @@ const userController = {
         email: user.email,
         avgDifficulty: user.stats.avgDifficulty,
         avgTime: user.stats.avgTime,
-        questionsCompleted: user.stats.questionsCompleted
+        questionsCompleted: user.stats.questionsCompleted,
+        attempts: user.attempts
       });
 
     } catch (err) {
@@ -354,7 +343,43 @@ const userController = {
         message: err.message
       });
     }
+  },
 
+  getAttemptedQuestionIds: async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const requestingUser = req.user;
+
+      if (!requestingUser.isAdmin && requestingUser._id.toString() !== userId) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'You can only access your own question history'
+        });
+      }
+
+      const user = await User.findById(userId)
+        .populate('attempts', 'questionId -_id'); 
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const completedQuestionIds = user.attempts.map(attempt => 
+        attempt.questionId.toString()
+      );
+
+      res.status(200).json({
+        completedQuestions: completedQuestionIds,
+        totalCompleted: completedQuestionIds.length
+      });
+
+    } catch (err) {
+      console.error('Error fetching completed questions:', err);
+      res.status(500).json({
+        error: 'Failed to retrieve completed questions',
+        message: err.message
+      });
+    }
   }
 };
 
