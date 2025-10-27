@@ -21,7 +21,7 @@ function App() {
             <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/" element={<Homepage />} />
-            <Route path="/collaborate/:session" element={<Collaboration />} />
+            <Route path="/collaborate/:sessionId" element={<Collaboration />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>

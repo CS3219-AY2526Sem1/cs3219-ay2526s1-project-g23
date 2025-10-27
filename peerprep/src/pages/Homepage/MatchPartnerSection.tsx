@@ -29,6 +29,7 @@ import {
 import { Timer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { useNavigate } from "react-router";
 import { io } from "socket.io-client";
 import { toast } from "sonner";
 import AcceptMatchModal from "./AcceptMatchModal";
@@ -46,6 +47,8 @@ type FormValues = {
 };
 
 export default function MatchPartnerSection() {
+  const navigate = useNavigate();
+
   const form = useForm<FormValues>({
     defaultValues: {
       questionType: "",
@@ -112,6 +115,10 @@ export default function MatchPartnerSection() {
         });
         setIsAcceptModalOpen(true); // New modal for accept/decline
         setIsModalOpen(false); // Close the "searching" modal
+      }
+
+      if (event.type == "match_confirmed") {
+        navigate(`/collaborate/${event.sessionId}`);
       }
     });
 

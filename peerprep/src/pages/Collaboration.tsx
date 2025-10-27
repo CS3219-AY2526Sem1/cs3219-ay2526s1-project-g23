@@ -1,3 +1,6 @@
+import { getMatchSession } from "@/api/matching-service";
+import { getQuestionById } from "@/api/question-service";
+import Spinner from "@/components/custom/spinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,64 +13,58 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Editor from "@monaco-editor/react";
 import DOMPurify from "dompurify";
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useNavigate, useParams } from "react-router";
+import { toast } from "sonner";
 import { MonacoBinding } from "y-monaco";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 
-// TODO: Remove static content
-const title = "Container With Most Water";
-const difficulty = "Medium";
-const topics = ["Greedy"];
-const content = `<p>You are given an integer array <code>height</code> of length <code>n</code>. There are <code>n</code> vertical lines drawn such that the two endpoints of the <code>i<sup>th</sup></code> line are <code>(i, 0)</code> and <code>(i, height[i])</code>.</p>
-
-<p>Find two lines that together with the x-axis form a container, such that the container contains the most water.</p>
-
-<p>Return <em>the maximum amount of water a container can store</em>.</p>
-
-<p><strong>Notice</strong> that you may not slant the container.</p>
-
-<p>&nbsp;</p>
-<p><strong class="example">Example 1:</strong></p>
-<img alt="" src="https://s3-lc-upload.s3.amazonaws.com/uploads/2018/07/17/question_11.jpg" style="width: 600px; height: 287px;" />
-<pre>
-<strong>Input:</strong> height = [1,8,6,2,5,4,8,3,7]
-<strong>Output:</strong> 49
-<strong>Explanation:</strong> The above vertical lines are represented by array [1,8,6,2,5,4,8,3,7]. In this case, the max area of water (blue section) the container can contain is 49.
-</pre>
-
-<p><strong class="example">Example 2:</strong></p>
-
-<pre>
-<strong>Input:</strong> height = [1,1]
-<strong>Output:</strong> 1
-</pre>
-
-<p>&nbsp;</p>
-<p><strong>Constraints:</strong></p>
-
-<ul>
-	<li><code>n == height.length</code></li>
-	<li><code>2 &lt;= n &lt;= 10<sup>5</sup></code></li>
-	<li><code>0 &lt;= height[i] &lt;= 10<sup>4</sup></code></li>
-</ul>
-`;
-const partner = "John Doe";
-
 const Collaboration = () => {
   const username = localStorage.getItem("username") || "";
-  const { session } = useParams();
+
+  const navigate = useNavigate();
+  const { sessionId } = useParams();
+  const [loading, startTransition] = useTransition();
+
   const ydocument = useMemo(() => new Y.Doc(), []);
   const [editor, setEditor] = useState<any>(null);
   const [provider, setProvider] = useState<WebsocketProvider | null>(null);
   const [cursorStyleSheet, setCursorStyleSheet] =
     useState<CSSStyleSheet | null>(null);
+  const [sessionPartner, setSessionPartner] = useState(null);
+  const [question, setQuestion] = useState({
+    title: "",
+    difficulty: "",
+    topics: [],
+    content: "",
+  });
 
   useEffect(() => {
+    // Insert dynamic stylesheet for cursor generation
     const stylesheet = document.createElement("style");
     document.head.appendChild(stylesheet);
     setCursorStyleSheet(stylesheet.sheet);
+
+    startTransition(async () => {
+      // Get session and question details
+      let session;
+      try {
+        session = await getMatchSession(sessionId!);
+      } catch {
+        navigate("/");
+        toast.error("Collaboration session does not exist");
+      }
+
+      const { questionId, participants } = session;
+      const question = await getQuestionById(questionId);
+      setQuestion(question);
+
+      const partner = participants.find(
+        (user: { username: string }) => user.username != username
+      );
+      setSessionPartner(partner.username);
+    });
 
     return () => {
       document.head.removeChild(stylesheet);
@@ -77,7 +74,7 @@ const Collaboration = () => {
   useEffect(() => {
     const provider = new WebsocketProvider(
       "ws://localhost:3004",
-      session as string,
+      sessionId as string,
       ydocument
     );
     setProvider(provider);
@@ -86,7 +83,7 @@ const Collaboration = () => {
       provider?.destroy();
       ydocument.destroy();
     };
-  }, [ydocument]);
+  }, [ydocument, sessionId]);
 
   useEffect(() => {
     if (provider == null || editor == null) {
@@ -179,14 +176,18 @@ const Collaboration = () => {
     setEditor(editor);
   };
 
+  if (loading) {
+    return <Spinner />;
+  }
+
   return (
     <div className="w-full h-[calc(100vh-121px)] grid grid-cols-2 gap-6 py-10 px-6">
       <Card className="col-span-1">
         <CardHeader>
-          <CardTitle className="text-xl">{title}</CardTitle>
+          <CardTitle className="text-xl">{question.title}</CardTitle>
           <CardDescription className="flex flex-wrap gap-2">
-            <Badge>{difficulty}</Badge>
-            {topics.map((topic) => (
+            <Badge>{question.difficulty}</Badge>
+            {question.topics.map((topic) => (
               <Badge key={topic} variant="outline">
                 {topic}
               </Badge>
@@ -198,7 +199,7 @@ const Collaboration = () => {
             <div
               className="prose prose-sm [&>*]:text-wrap"
               dangerouslySetInnerHTML={{
-                __html: DOMPurify.sanitize(content),
+                __html: DOMPurify.sanitize(question.content),
               }}
             />
           </ScrollArea>
@@ -207,7 +208,8 @@ const Collaboration = () => {
       <div className="flex flex-col gap-4 col-span-1">
         <div className="flex justify-between items-center">
           <div>
-            Collaborating With: <span className="font-medium">{partner}</span>
+            Collaborating With:{" "}
+            <span className="font-medium">{sessionPartner}</span>
           </div>
           <Button>End Session</Button>
         </div>

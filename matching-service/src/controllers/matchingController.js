@@ -28,7 +28,7 @@ class MatchingController {
   // Submit a match request
   async submitMatchRequest(req, res) {
     try {
-      const { userId } = req.user; 
+      const { userId, username } = req.user; 
       const { topic, difficulty, proficiency, language = 'python' } = req.body;
       
       if (!topic || !difficulty || !proficiency) {
@@ -47,9 +47,9 @@ class MatchingController {
         });
       }
       
-      const queueData = await redisService.addToQueue(userId, topic, proficiency, difficulty, language);
+      const queueData = await redisService.addToQueue(userId, username, topic, proficiency, difficulty, language);
       
-      const match = await this.findMatch(userId, { topic, difficulty, proficiency, language });
+      const match = await this.findMatch(userId, username, { topic, difficulty, proficiency, language });
       
       if (match) {
         return res.status(200).json({
@@ -74,7 +74,7 @@ class MatchingController {
     }
   }
   
-  async findMatch(userId, criteria) {
+  async findMatch(userId, username, criteria) {
     try {
       const { topic, difficulty, proficiency, language } = criteria;
       
@@ -105,14 +105,14 @@ class MatchingController {
       });
       
       const proposalId = await redisService.createMatchProposal(
-        userId, 
-        partner.userId, 
+        { id: userId, username },
+        { id: partner.userId, username: partner.username },
         criteria,
         {
           topic: partner.topic,
           difficulty: partner.difficulty,
           proficiency: partner.proficiency,
-          language: partner.language
+          language: partner.language,
         },
         sessionCriteria
       );
@@ -157,21 +157,21 @@ class MatchingController {
   }
   
   // Create a match session between two users
-  async createMatchSession(userId1, userId2, criteria1, criteria2) {
+  async createMatchSession(user1, user2, criteria1, criteria2) {
     try {
       const sessionCriteria = this.resolveSessionCriteria(criteria1, criteria2);
       
       // Fetch a question for the session
-      const questionId = await this.getQuestionId(sessionCriteria, userId1, userId2);
+      const questionId = await this.getQuestionId(sessionCriteria, user1.id, user2.id);
       const participants = [
         {
-          userId: userId1,
-          username: `user_${userId1}`, 
+          userId: user1.id,
+          username: user1.username, 
           originalCriteria: criteria1
         },
         {
-          userId: userId2,
-          username: `user_${userId2}`, 
+          userId: user2.id,
+          username: user2.username, 
           originalCriteria: criteria2
         }
       ];
@@ -304,14 +304,14 @@ class MatchingController {
       if (activeProposal) {
         await redisService.declineMatchProposal(userId, activeProposal.proposalId);
         
-        const partnerId = userId === activeProposal.user1Id ? activeProposal.user2Id : activeProposal.user1Id;
+        const partner = userId === activeProposal.user1.id ? activeProposal.user2 : activeProposal.user1;
         
-        await redisService.notifyUser(partnerId, {
+        await redisService.notifyUser(partner.id, {
           type: 'match_cancelled',
           message: 'Your match partner cancelled the request. You will be returned to the queue.'
         });
         
-        const partnerCriteria = userId === activeProposal.user1Id ? activeProposal.criteria2 : activeProposal.criteria1;
+        const partnerCriteria = userId === activeProposal.user1.id ? activeProposal.criteria2 : activeProposal.criteria1;
         await redisService.addToQueue(
           partnerId,
           partnerCriteria.topic,
@@ -320,7 +320,7 @@ class MatchingController {
           partnerCriteria.language
         );
         
-        await redisService.cleanupMatchProposal(activeProposal.proposalId, activeProposal.user1Id, activeProposal.user2Id);
+        await redisService.cleanupMatchProposal(activeProposal.proposalId, activeProposal.user1.id, activeProposal.user2.id);
         
         return res.status(200).json({
           message: 'Match proposal cancelled successfully'
@@ -374,8 +374,8 @@ class MatchingController {
         
         // Create match session
         const session = await this.createMatchSession(
-          proposal.user1Id, 
-          proposal.user2Id, 
+          proposal.user1, 
+          proposal.user2, 
           proposal.criteria1, 
           proposal.criteria2
         );
@@ -383,33 +383,35 @@ class MatchingController {
         // Create match request records in MongoDB
         await MatchRequest.create([
           {
-            userId: proposal.user1Id,
+            userId: proposal.user1.id,
+            username: proposal.user1.username,
             criteria: proposal.criteria1,
             status: 'matched',
-            matchedWith: proposal.user2Id,
+            matchedWith: proposal.user2.id,
             sessionId: session._id,
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
           },
           {
-            userId: proposal.user2Id,
+            userId: proposal.user2.id,
+            username: proposal.user2.username,
             criteria: proposal.criteria2,
             status: 'matched',
-            matchedWith: proposal.user1Id,
+            matchedWith: proposal.user1.id,
             sessionId: session._id,
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
           }
         ]);
         
         // Notify both users of confirmed match
-        await this.notifyUsers(proposal.user1Id, proposal.user2Id, session);
+        await this.notifyUsers(proposal.user1.id, proposal.user2.id, session);
         
         // Clean up proposal
-        await redisService.cleanupMatchProposal(proposalId, proposal.user1Id, proposal.user2Id);
+        await redisService.cleanupMatchProposal(proposalId, proposal.user1.id, proposal.user2.id);
         
         return res.status(200).json({
           message: 'Match confirmed! Both users accepted.',
           session: session,
-          partnerId: userId === proposal.user1Id ? proposal.user2Id : proposal.user1Id
+          partnerId: userId === proposal.user1.id ? proposal.user2.id : proposal.user1.id
         });
       }
       
@@ -442,17 +444,17 @@ class MatchingController {
       }
       
       const proposal = result.proposal;
-      const partnerId = userId === proposal.user1Id ? proposal.user2Id : proposal.user1Id;
+      const partner = userId === proposal.user1.id ? proposal.user2 : proposal.user1;
       
       // Notify partner that match was declined
-      await redisService.notifyUser(partnerId, {
+      await redisService.notifyUser(partner.id, {
         type: 'match_declined',
         message: 'Your match partner declined the match. You will be returned to the queue.',
         declinedBy: userId
       });
       
       // Add partner back to queue
-      const partnerCriteria = userId === proposal.user1Id ? proposal.criteria2 : proposal.criteria1;
+      const partnerCriteria = userId === proposal.user1.id ? proposal.criteria2 : proposal.criteria1;
       await redisService.addToQueue(
         partnerId,
         partnerCriteria.topic,
@@ -462,7 +464,7 @@ class MatchingController {
       );
       
       // Clean up proposal
-      await redisService.cleanupMatchProposal(proposalId, proposal.user1Id, proposal.user2Id);
+      await redisService.cleanupMatchProposal(proposalId, proposal.user1.id, proposal.user2.id);
       
       res.status(200).json({
         message: 'Match proposal declined. Partner has been notified.'
@@ -498,9 +500,9 @@ class MatchingController {
       const activeProposal = await redisService.getUserActiveProposal(userId);
       
       if (activeProposal) {
-        const partnerId = userId === activeProposal.user1Id ? activeProposal.user2Id : activeProposal.user1Id;
-        const userAccepted = userId === activeProposal.user1Id ? activeProposal.user1Accepted : activeProposal.user2Accepted;
-        const partnerAccepted = userId === activeProposal.user1Id ? activeProposal.user2Accepted : activeProposal.user1Accepted;
+        const partnerId = userId === activeProposal.user1.id ? activeProposal.user2.id : activeProposal.user1.id;
+        const userAccepted = userId === activeProposal.user1.id ? activeProposal.user1Accepted : activeProposal.user2Accepted;
+        const partnerAccepted = userId === activeProposal.user1.id ? activeProposal.user2Accepted : activeProposal.user1Accepted;
         
         return res.status(200).json({
           status: 'proposal_pending',
@@ -562,6 +564,25 @@ class MatchingController {
       res.status(500).json({
         error: 'Failed to get match status',
         message: err.message
+      });
+    }
+  }
+  
+  async getMatchSession(req, res) {
+    try {
+      const { sessionId } = req.params;
+
+      const session = await MatchSession.findById(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+
+      res.status(200).json(session);
+    } catch (err) {
+      console.error('Get match session error:', err);
+      res.status(500).json({
+        error: 'Failed to get match session',
+        message: err.message,
       });
     }
   }
