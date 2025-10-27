@@ -62,22 +62,20 @@ const attemptController = {
         query.userId = userId;
       }
 
-      const attempts = await Attempt.find(query).sort({ createdAt: -1 });
-      const updatedAttempts = await Promise.all(
-        attempts.map(async (attempt) => {
-          const question = await Question.findById(attempt.questionId);
-          return {
-            id: attempt._id,
-            title: question.title,
-            topics: question.topics,
-            difficulty: attempt.difficulty,
-            timeTakenSeconds: attempt.timeTakenSeconds,
-            createdAt: attempt.createdAt,
-          };
-        })
-      );
+      const populatedAttempts = await Attempt.find(query)
+        .sort({ createdAt: -1 })
+        .populate("questionId", "title topics");
 
-      res.status(200).json(updatedAttempts);
+      const result = populatedAttempts.map(attempt => ({
+        id: attempt._id,
+        title: attempt.questionId.title,
+        topics: attempt.questionId.topics,
+        difficulty: attempt.difficulty,
+        timeTakenSeconds: attempt.timeTakenSeconds,
+        createdAt: attempt.createdAt,
+      }));
+
+      res.status(200).json(result);
     } catch (err) {
       res.status(500).json({
         error: 'Failed to retrieve attempts',
