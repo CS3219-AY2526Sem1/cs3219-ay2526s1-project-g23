@@ -47,7 +47,7 @@ const matchSessionSchema = new mongoose.Schema({
   // Question assigned for this session
   questionId: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Question',
+    ref: 'question-service',
     default: null
   },
   
