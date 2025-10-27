@@ -119,8 +119,11 @@ const Collaboration = () => {
         return;
       }
 
+      // @ts-ignore
       for (let i = cursorStyleSheet?.cssRules.length - 1; i >= 0; i--) {
-        if (cursorStyleSheet?.cssRules[i].cssText.includes(clientId)) {
+        if (
+          cursorStyleSheet?.cssRules[i].cssText.includes(clientId.toString())
+        ) {
           cursorStyleSheet.deleteRule(i);
         }
       }

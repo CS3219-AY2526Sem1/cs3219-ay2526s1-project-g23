@@ -654,7 +654,7 @@ class MatchingController {
     try {
       const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3001';
 
-      const response = await fetch(`${userServiceUrl}/api/users/${userId}/attempted-questionIds`, {
+      const response = await fetch(`${userServiceUrl}/users/${userId}/attempted-questionIds`, {
         headers: {
           'Content-Type': 'application/json',
         }
