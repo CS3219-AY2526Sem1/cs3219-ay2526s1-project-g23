@@ -19,6 +19,5 @@ router.post('/proposal/:proposalId/decline', authMiddleware, matchingController.
 // Get current match status
 router.get('/status', authMiddleware, matchingController.getMatchStatus);
 
-// Get queue statistics (admin or public)
 router.get('/stats', matchingController.getQueueStats);
 export default router;

@@ -12,7 +12,6 @@ class RedisService {
       lazyConnect: false
     });
     
-    // Separate connection for pub/sub
     this.subscriber = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
       port: process.env.REDIS_PORT || 6379,
@@ -32,17 +31,14 @@ class RedisService {
     });
   }
   
-  // Generate queue key based on topic
   getQueueKey(topic) {
     return `matching:queue:${topic}`;
   }
   
-  // Generate active request key for user
   getActiveRequestKey(userId) {
     return `matching:active:${userId}`;
   }
   
-  // Generate notification channel for user
   getNotificationChannel(userId) {
     return `matching:notifications:${userId}`;
   }
@@ -52,7 +48,6 @@ class RedisService {
     const activeKey = this.getActiveRequestKey(userId);
     const timestamp = Date.now();
     
-    // Store user's request data with TTL (5 minutes)
     const requestData = {
       userId,
       topic,
@@ -65,12 +60,10 @@ class RedisService {
     
     const pipeline = this.redis.pipeline();
     
-    // Add to topic queue (sorted set with timestamp as score)
     pipeline.zadd(queueKey, timestamp, userId);
     
-    // Store active request data with expiration
     pipeline.hmset(activeKey, requestData);
-    pipeline.expire(activeKey, 30); // 30 seconds TTL
+    pipeline.expire(activeKey, 30); 
     
     // Update queue statistics
     pipeline.hincrby('matching:stats', 'totalActive', 1);
@@ -83,7 +76,6 @@ class RedisService {
     return { position, timestamp };
   }
   
-  // Remove user from queue
   async removeFromQueue(userId, topic) {
     const queueKey = this.getQueueKey(topic);
     const activeKey = this.getActiveRequestKey(userId);
@@ -185,7 +177,6 @@ class RedisService {
     return exists === 1;
   }
   
-  // Get user's active request data
   async getActiveRequest(userId) {
     const activeKey = this.getActiveRequestKey(userId);
     const requestData = await this.redis.hgetall(activeKey);
@@ -205,7 +196,6 @@ class RedisService {
     };
   }
   
-  // Match Proposal Management
   getMatchProposalKey(proposalId) {
     return `matching:proposal:${proposalId}`;
   }
@@ -214,7 +204,6 @@ class RedisService {
     return `matching:user_proposal:${userId}`;
   }
   
-  // Create a match proposal in Redis
   async createMatchProposal(user1Id, user2Id, criteria1, criteria2, sessionCriteria) {
     const proposalId = `${user1Id}_${user2Id}_${Date.now()}`;
     const proposalKey = this.getMatchProposalKey(proposalId);
@@ -232,11 +221,9 @@ class RedisService {
       status: 'pending'
     };
     
-    // Store proposal with 60-second TTL
     await this.redis.hset(proposalKey, proposal);
     await this.redis.expire(proposalKey, 60);
     
-    // Map users to their proposal
     await this.redis.setex(this.getUserProposalKey(user1Id), 60, proposalId);
     await this.redis.setex(this.getUserProposalKey(user2Id), 60, proposalId);
     
@@ -263,7 +250,6 @@ class RedisService {
     };
   }
   
-  // Get user's active proposal
   async getUserActiveProposal(userId) {
     const proposalId = await this.redis.get(this.getUserProposalKey(userId));
     if (!proposalId) {
@@ -272,7 +258,6 @@ class RedisService {
     return await this.getMatchProposal(proposalId);
   }
   
-  // Accept a match proposal
   async acceptMatchProposal(userId, proposalId) {
     const proposalKey = this.getMatchProposalKey(proposalId);
     const proposal = await this.getMatchProposal(proposalId);
@@ -318,14 +303,12 @@ class RedisService {
       return { success: false, error: 'Proposal is no longer pending' };
     }
     
-    // Mark proposal as declined
     await this.redis.hset(proposalKey, 'status', 'declined');
     await this.redis.hset(proposalKey, 'declinedBy', userId);
     
     return { success: true, proposal };
   }
   
-  // Clean up proposal after processing
   async cleanupMatchProposal(proposalId, user1Id, user2Id) {
     const proposalKey = this.getMatchProposalKey(proposalId);
     await this.redis.del(proposalKey);
@@ -333,7 +316,6 @@ class RedisService {
     await this.redis.del(this.getUserProposalKey(user2Id));
   }
   
-  // Clean up expired requests
   async cleanupExpiredRequests() {
     const topics = [
       'binary-search', 'linked-list', 'stack', 'graph', 
@@ -347,7 +329,6 @@ class RedisService {
     for (const topic of topics) {
       const queueKey = this.getQueueKey(topic);
       
-      // Remove entries older than threshold
       const removed = await this.redis.zremrangebyscore(queueKey, 0, expiredThreshold);
       totalCleaned += removed;
     }

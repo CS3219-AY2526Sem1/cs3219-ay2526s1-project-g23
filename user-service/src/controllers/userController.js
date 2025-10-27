@@ -4,9 +4,8 @@ const userController = {
   getUser: async (req, res) => {
     try {
       const { userId } = req.params;
-      const requestingUser = req.user; // From auth middleware
+      const requestingUser = req.user; 
 
-      // Authorization check
       if (!requestingUser.isAdmin && requestingUser._id.toString() !== userId) {
         return res.status(403).json({
           error: 'Forbidden',
@@ -83,7 +82,6 @@ const userController = {
       const requestingUser = req.user;
       const updates = req.body;
 
-      // Authorization check
       if (!requestingUser.isAdmin && requestingUser._id.toString() !== userId) {
         return res.status(403).json({
           error: 'Forbidden',
@@ -148,7 +146,6 @@ const userController = {
       const { userId } = req.params;
       const { isAdmin } = req.body;
 
-      // Admin check
       if (!req.user.isAdmin) {
         return res.status(403).json({
           error: 'Forbidden',
@@ -195,7 +192,6 @@ const userController = {
       const { userId } = req.params;
       const requestingUser = req.user;
 
-      // Authorization check
       if (!requestingUser.isAdmin && requestingUser.userId !== userId) {
         return res.status(403).json({
           error: 'Forbidden',
@@ -203,7 +199,6 @@ const userController = {
         });
       }
 
-      // Prevent admin self-deletion
       if (requestingUser.isAdmin && requestingUser._id.toString() === userId) {
         return res.status(400).json({
           error: 'Invalid operation',
@@ -298,13 +293,6 @@ const userController = {
       const { userId } = req.params;
       const requestingUser = req.user;
 
-      // if (!requestingUser.isAdmin && requestingUser._id.toString() !== userId) {
-      //   return res.status(403).json({
-      //     error: 'Forbidden',
-      //     message: 'You can only access your own profile'
-      //   });
-      // }
-
       const user = await User.findById(userId);
 
       if (!user) {
@@ -357,7 +345,6 @@ const userController = {
     }
   },
 
-  // Get only completed question IDs (more efficient for matching service)
   getAttemptedQuestionIds: async (req, res) => {
     try {
       const { userId } = req.params;
@@ -371,7 +358,7 @@ const userController = {
       }
 
       const user = await User.findById(userId)
-        .populate('attempts', 'questionId -_id'); // Only get questionId field
+        .populate('attempts', 'questionId -_id'); 
 
       if (!user) {
         return res.status(404).json({ error: "User not found" });

@@ -47,7 +47,7 @@ const matchRequestSchema = new mongoose.Schema({
   },
   expiresAt: { 
     type: Date,
-    default: () => new Date(Date.now() + 30 * 1000) // 30 seconds from now
+    default: () => new Date(Date.now() + 30 * 1000) 
   },
   matchedWith: { 
     type: mongoose.Schema.Types.ObjectId, 
@@ -66,7 +66,6 @@ matchRequestSchema.index({ userId: 1 });
 matchRequestSchema.index({ 'criteria.topic': 1, 'criteria.difficulty': 1, 'criteria.proficiency': 1 });
 matchRequestSchema.index({ status: 1, createdAt: 1 });
 
-// TTL index - automatically remove expired documents
 matchRequestSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export default mongoose.model('MatchRequest', matchRequestSchema);
