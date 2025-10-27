@@ -48,10 +48,11 @@ export const getPopularQuestions = async (limit = 10) => {
  */
 export const getUserAttempts = async () => {
   const userId = localStorage.getItem("userId");
-  return await request({
+  const reponse = await request({
     url: `/attempts`,
     port: QUESTION_SERVICE_PORT,
     method: "get",
     data: { userId },
   });
+  return reponse;``
 };
