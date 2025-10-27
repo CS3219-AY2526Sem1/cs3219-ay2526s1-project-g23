@@ -50,6 +50,15 @@ export const getMatchStatus = async () =>
     includeToken: true,
   });
 
+export const getMatchSession = async (id: string) => {
+  return await request({
+    url: `${BASE_ROUTE}/session/${id}`,
+    port: MATCHING_PORT,
+    method: "get",
+    includeToken: true,
+  });
+};
+
 export const getQueueStats = async () =>
   await request({
     url: `${BASE_ROUTE}/stats`,
