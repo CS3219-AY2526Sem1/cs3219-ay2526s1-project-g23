@@ -32,6 +32,18 @@ export const getQuestionById = async (id: string) => {
 };
 
 /**
+ * Create a question
+ */
+export const createQuestion = async (data: any) => {
+  return await request({
+    url: "/questions/create",
+    port: QUESTION_SERVICE_PORT,
+    method: "post",
+    data,
+  });
+};
+
+/**
  * Activate a specific question by ID
  */
 export const activateQuestionById = async (id: string) => {

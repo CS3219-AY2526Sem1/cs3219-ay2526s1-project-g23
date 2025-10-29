@@ -1,5 +1,6 @@
 import {
   activateQuestionById,
+  createQuestion,
   deactivateQuestionById,
   deleteQuestionById,
   editQuestionById,
@@ -21,15 +22,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ActiveDialog from "@/pages/Admin/ActiveDialog";
+import CreateDialog from "@/pages/Admin/CreateDialog";
 import DeleteDialog from "@/pages/Admin/DeleteDialog";
 import EditDialog from "@/pages/Admin/EditDialog";
 import { type ColumnDef } from "@tanstack/react-table";
 import DOMPurify from "dompurify";
-import { BookOpen, EllipsisVertical } from "lucide-react";
+import { BookOpen, EllipsisVertical, Search } from "lucide-react";
 import moment from "moment";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 
@@ -48,8 +51,10 @@ const Admin = () => {
     null
   );
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [activeDialogOpen, setActiveDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const searchRef = useRef(null);
 
   const columns: ColumnDef<Question>[] = [
     {
@@ -85,7 +90,9 @@ const Admin = () => {
       cell: ({ getValue }) => (
         <div className="flex flex-wrap gap-1">
           {(getValue() as string[]).map((topic) => (
-            <Badge variant="outline">{topic}</Badge>
+            <Badge key={topic} variant="outline">
+              {topic}
+            </Badge>
           ))}
         </div>
       ),
@@ -165,32 +172,40 @@ const Admin = () => {
     }
     startTransition(async () => {
       try {
-        const { questions, pagination } = await getQuestions({ page: 1 });
-        setData(questions);
-        setPagination(pagination);
+        await handleGetQuestions({ page: 1 });
       } catch (error) {
         toast.error("Failed to fetch questions");
       }
     });
   }, []);
 
+  const handleGetQuestions = async (params: any = {}) => {
+    // @ts-ignore
+    const search = searchRef.current?.value || "";
+    const { questions, pagination } = await getQuestions({ ...params, search });
+    setData(questions);
+    setPagination(pagination);
+  };
+
   const onPageChange = async (next = true) => {
     const page = next ? pagination.page + 1 : pagination.page - 1;
-    const { questions, pagination: updatedPagination } = await getQuestions({
-      page,
-    });
-    setData(questions);
-    setPagination(updatedPagination);
+    await handleGetQuestions({ page });
+  };
+
+  const onCreate = async (values: any) => {
+    try {
+      await createQuestion(values);
+      await handleGetQuestions({ page: pagination.page });
+      toast.success("Question was created successfully");
+    } catch (err) {
+      toast.error(err.message);
+    }
   };
 
   const onEdit = async (values: any) => {
     try {
       await editQuestionById(selectedQuestion!._id, values);
-      const { questions, updatedPagination } = await getQuestions({
-        page: pagination.page,
-      });
-      setData(questions);
-      setPagination(updatedPagination);
+      await handleGetQuestions({ page: pagination.page });
       toast.success("Question was edited successfully");
     } catch (err) {
       toast.error(err.message);
@@ -205,11 +220,7 @@ const Admin = () => {
       } else {
         await activateQuestionById(selectedQuestion!._id);
       }
-      const { questions, updatedPagination } = await getQuestions({
-        page: pagination.page,
-      });
-      setData(questions);
-      setPagination(updatedPagination);
+      await handleGetQuestions({ page: pagination.page });
       toast.success("Question was updated successfully");
     } catch (err) {
       toast.error(err.message);
@@ -219,11 +230,7 @@ const Admin = () => {
   const onDelete = async () => {
     try {
       await deleteQuestionById(selectedQuestion!._id);
-      const { questions, updatedPagination } = await getQuestions({
-        page: pagination.page,
-      });
-      setData(questions);
-      setPagination(updatedPagination);
+      await handleGetQuestions({ page: pagination.page });
       toast.success("Question was deleted successfully");
     } catch (err) {
       toast.error(err.message);
@@ -235,11 +242,26 @@ const Admin = () => {
   }
 
   return (
-    <div className="w-full py-10 px-8">
+    <div className="flex flex-col gap-4 w-full py-10 px-8">
+      <h2 className="text-2xl font-semibold">Question Management</h2>
+      <div className="flex items-center justify-between">
+        <div className="flex w-full max-w-sm items-center gap-2">
+          <Input ref={searchRef} type="text" placeholder="Search..." />
+          <Button onClick={() => handleGetQuestions()}>
+            <Search />
+          </Button>
+        </div>
+        <Button onClick={() => setCreateDialogOpen(true)}>Create</Button>
+      </div>
       <DataTable
         data={data}
         columns={columns}
         pagination={{ ...pagination, onPageChange }}
+      />
+      <CreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onCreate={onCreate}
       />
       <EditDialog
         open={editDialogOpen}
