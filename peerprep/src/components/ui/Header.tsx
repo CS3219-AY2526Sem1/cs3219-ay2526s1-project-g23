@@ -16,6 +16,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router";
 
 const Header: React.FC = () => {
+  const isAdmin = localStorage.getItem("isAdmin") == "true";
   const navigate = useNavigate();
 
   const onLogout = async () => {
@@ -32,6 +33,11 @@ const Header: React.FC = () => {
           <Link to="/" className="hover:underline text-indigo-600">
             Home
           </Link>
+          {isAdmin && (
+            <Link to="/admin" className="hover:underline text-indigo-600">
+              Admin
+            </Link>
+          )}
           <Link to="/profile" className="hover:underline text-indigo-600">
             Profile
           </Link>
