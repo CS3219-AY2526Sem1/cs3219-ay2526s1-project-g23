@@ -105,7 +105,7 @@ const questionController = {
                 aveTimeSeconds = 0,
                 isActive = true
             } = req.body;
-
+            console.log("Creating questions now");
             // Validate required fields
             if (!title || !content || !difficulty || !topics) {
                 return res.status(400).json({ error: "Missing required fields",
@@ -277,20 +277,20 @@ const questionController = {
             if (!deletedQuestion) {
                 return res.status(404).json({
                     error: 'Question not found',
-                    message: 'The question you are trying to delete does not exist'
+                    message: 'The question you are trying to deactivate does not exist'
                 });
             }
 
             res.status(200).json({
-                message: 'Question deleted successfully',
+                message: 'Question deactivate successfully',
                 question: deletedQuestion
             });
 
         } catch (err) {
-            console.error('Delete question error:', err);
+            console.error('Deactivate question error:', err);
             res.status(500).json({
-                error: 'Failed to delete question',
-                message: 'Unable to delete question'
+                error: 'Failed to deactivate question',
+                message: 'Unable to deactivate question'
             });
         }
     },
