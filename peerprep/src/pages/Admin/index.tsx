@@ -196,9 +196,12 @@ const Admin = () => {
     try {
       await createQuestion(values);
       await handleGetQuestions({ page: pagination.page });
+      setCreateDialogOpen(false);
       toast.success("Question was created successfully");
+      return true;
     } catch (err) {
       toast.error(err.message);
+      return false;
     }
   };
 
@@ -206,6 +209,7 @@ const Admin = () => {
     try {
       await editQuestionById(selectedQuestion!._id, values);
       await handleGetQuestions({ page: pagination.page });
+      setEditDialogOpen(false);
       toast.success("Question was edited successfully");
     } catch (err) {
       toast.error(err.message);

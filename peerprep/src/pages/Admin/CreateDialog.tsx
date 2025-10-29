@@ -37,7 +37,7 @@ import { z } from "zod";
 interface CreateDialogProps {
   open: boolean;
   onOpenChange: Dispatch<any>;
-  onCreate: (values: any) => Promise<void>;
+  onCreate: (values: any) => Promise<boolean>;
 }
 
 const formSchema = z.object({
@@ -72,7 +72,10 @@ const CreateDialog = ({ open, onOpenChange, onCreate }: CreateDialogProps) => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     startTransition(async () => {
-      await onCreate(values);
+      const status = await onCreate(values);
+      if (status) {
+        form.reset();
+      }
     });
   };
 

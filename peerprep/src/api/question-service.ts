@@ -40,6 +40,7 @@ export const createQuestion = async (data: any) => {
     port: QUESTION_SERVICE_PORT,
     method: "post",
     data,
+    includeToken: true,
   });
 };
 
@@ -51,6 +52,7 @@ export const activateQuestionById = async (id: string) => {
     url: `/questions/${id}/activate`,
     port: QUESTION_SERVICE_PORT,
     method: "patch",
+    includeToken: true,
   });
 };
 
@@ -62,6 +64,7 @@ export const deactivateQuestionById = async (id: string) => {
     url: `/questions/${id}/deactivate`,
     port: QUESTION_SERVICE_PORT,
     method: "patch",
+    includeToken: true,
   });
 };
 
@@ -73,6 +76,7 @@ export const editQuestionById = async (id: string, data: any) => {
     url: `/questions/${id}/update`,
     port: QUESTION_SERVICE_PORT,
     method: "put",
+    includeToken: true,
     data,
   });
 };
@@ -85,6 +89,7 @@ export const deleteQuestionById = async (id: string) => {
     url: `/questions/${id}/delete`,
     port: QUESTION_SERVICE_PORT,
     method: "delete",
+    includeToken: true,
   });
 };
 
