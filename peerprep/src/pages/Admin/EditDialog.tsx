@@ -42,10 +42,10 @@ interface EditDialogProps {
 }
 
 const formSchema = z.object({
-  title: z.string().nonempty(),
-  content: z.string().nonempty(),
-  topics: z.array(z.string()).min(1),
-  difficulty: z.string().nonempty(),
+  title: z.string().nonempty("This field is required"),
+  content: z.string().nonempty("This field is required"),
+  topics: z.array(z.string()).min(1, "This field is required"),
+  difficulty: z.string().nonempty("This field is required"),
 });
 
 const topicOptions = Object.values(topicLabels).map((value) => ({
@@ -136,6 +136,7 @@ const EditDialog = ({
                   </FormLabel>
                   <FormControl>
                     <MultiSelect
+                      className="font-normal [&_svg]:opacity-50"
                       options={topicOptions}
                       defaultValue={field.value}
                       onValueChange={field.onChange}
