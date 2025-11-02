@@ -105,7 +105,6 @@ const questionController = {
                 aveTimeSeconds = 0,
                 isActive = true
             } = req.body;
-            console.log("Creating questions now");
             // Validate required fields
             if (!title || !content || !difficulty || !topics) {
                 return res.status(400).json({ error: "Missing required fields",
@@ -114,8 +113,8 @@ const questionController = {
             }
 
             // Validate diffulty level
-            const validDifficulties = ["easy", "medium", "hard"];
-            if (!validDifficulties.includes(difficulty.toLowerCase())) {
+            const validDifficulties = ["Easy", "Medium", "Hard"];
+            if (!validDifficulties.includes(difficulty)) {
                 return res.status(400).json({ error: "Invalid difficulty level",
                     message: `Difficulty must be one of: ${validDifficulties.join(", ")}.`
                 });
@@ -124,7 +123,7 @@ const questionController = {
             const newQuestion = new Question({
                 title,
                 content,
-                difficulty: difficulty.toLowerCase(),
+                difficulty: difficulty,
                 topics: Array.isArray(topics) ? topics : [topics],
                 hints: Array.isArray(hints) ? hints : [hints],
                 noOfAttempts,
@@ -169,13 +168,13 @@ const questionController = {
 
             // Validate diffulty level if it's being updated
             if (updates.difficulty) {
-                const validDifficulties = ["easy", "medium", "hard"];
-                if (!validDifficulties.includes(updates.difficulty.toLowerCase())) {
+                const validDifficulties = ["Easy", "Medium", "Hard"];
+                if (!validDifficulties.includes(updates.difficulty)) {
                     return res.status(400).json({ error: "Invalid difficulty level",
                         message: `Difficulty must be one of: ${validDifficulties.join(", ")}.`
                     });
                 }
-                updates.difficulty = updates.difficulty.toLowerCase();
+                updates.difficulty = updates.difficulty;
             }
 
             // Convert single values to arrays for topics and hints
