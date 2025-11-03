@@ -47,7 +47,7 @@ const matchSessionSchema = new mongoose.Schema({
   // Question assigned for this session
   questionId: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Question',
+    ref: 'question-service',
     default: null
   },
   
@@ -78,10 +78,9 @@ const matchSessionSchema = new mongoose.Schema({
   // Session expiration
   expiresAt: { 
     type: Date,
-    default: () => new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours from creation
+    default: () => new Date(Date.now() + 2 * 60 * 60 * 1000) 
   },
   
-  // Metadata
   matchingAlgorithm: {
     type: String,
     default: 'exact-topic-proximity-proficiency'
@@ -108,12 +107,10 @@ matchSessionSchema.pre('save', function(next) {
   next();
 });
 
-// Indexes for efficient querying
 matchSessionSchema.index({ 'participants.userId': 1 });
 matchSessionSchema.index({ status: 1, createdAt: -1 });
 matchSessionSchema.index({ 'sessionCriteria.topic': 1, 'sessionCriteria.difficulty': 1 });
 
-// TTL index - automatically remove expired sessions
 matchSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export default mongoose.model('MatchSession', matchSessionSchema);
