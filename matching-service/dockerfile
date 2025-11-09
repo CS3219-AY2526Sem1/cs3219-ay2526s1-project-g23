@@ -23,5 +23,5 @@ ENV PORT 8083
 EXPOSE 8083
 
 # Start service
-CMD ["sh", "-c", "node src/app.js --port ${PORT}"]
+CMD ["node", "src/app.js"]
 
