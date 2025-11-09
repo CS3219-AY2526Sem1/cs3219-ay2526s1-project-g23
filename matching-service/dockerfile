@@ -18,8 +18,10 @@ COPY . .
 # Use non-root user
 USER app
 ENV NODE_ENV=production
+
+ENV PORT 8083
 EXPOSE 8083
 
 # Start service
-CMD ["node", "src/app.js"]
+CMD ["sh", "-c", "node src/app.js --port ${PORT}"]
 
