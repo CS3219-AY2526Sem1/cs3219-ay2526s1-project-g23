@@ -34,8 +34,8 @@ export const getQuestionById = async (id: string) => {
  */
 export const createQuestion = async (data: any) => {
   return await request({
-    url: "/questions/create",
-    port: QUESTION_SERVICE_PORT,
+    service: "question",
+    endpoint: "/questions/create",
     method: "post",
     data,
     includeToken: true,
@@ -47,8 +47,8 @@ export const createQuestion = async (data: any) => {
  */
 export const activateQuestionById = async (id: string) => {
   return await request({
-    url: `/questions/${id}/activate`,
-    port: QUESTION_SERVICE_PORT,
+    service: "question",
+    endpoint: `/questions/${id}/activate`,
     method: "patch",
     includeToken: true,
   });
@@ -59,8 +59,8 @@ export const activateQuestionById = async (id: string) => {
  */
 export const deactivateQuestionById = async (id: string) => {
   return await request({
-    url: `/questions/${id}/deactivate`,
-    port: QUESTION_SERVICE_PORT,
+    service: "question",
+    endpoint: `/questions/${id}/deactivate`,
     method: "patch",
     includeToken: true,
   });
@@ -71,8 +71,8 @@ export const deactivateQuestionById = async (id: string) => {
  */
 export const editQuestionById = async (id: string, data: any) => {
   return await request({
-    url: `/questions/${id}/update`,
-    port: QUESTION_SERVICE_PORT,
+    service: "question",
+    endpoint: `/questions/${id}/update`,
     method: "put",
     includeToken: true,
     data,
@@ -84,8 +84,8 @@ export const editQuestionById = async (id: string, data: any) => {
  */
 export const deleteQuestionById = async (id: string) => {
   return await request({
-    url: `/questions/${id}/delete`,
-    port: QUESTION_SERVICE_PORT,
+    service: "question",
+    endpoint: `/questions/${id}/delete`,
     method: "delete",
     includeToken: true,
   });

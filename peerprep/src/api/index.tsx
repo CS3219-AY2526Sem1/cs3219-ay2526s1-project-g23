@@ -15,7 +15,7 @@ export const request = async ({
 }: {
   service: keyof typeof SERVICE_URLS;
   endpoint: string;
-  method: "get" | "post" | "put" | "delete";
+  method: "get" | "post" | "put" | "delete" | "patch";
   data?: any;
   includeToken?: boolean;
 }) => {
