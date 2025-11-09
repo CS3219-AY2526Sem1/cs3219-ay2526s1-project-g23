@@ -61,7 +61,7 @@ jobs:
                 ./peerprep \
                 --push
 
-              # Deploy frontend without backend secrets
+              # Deploy frontend (no sensitive secrets)
               gcloud run deploy "$SERVICE" \
                 --image=gcr.io/$PROJECT_ID/$SERVICE:latest \
                 --platform managed \
@@ -76,15 +76,18 @@ jobs:
                 ./$SERVICE \
                 --push
 
-              # Compose environment variables string for Cloud Run
-              ENV_VARS="MONGO_URI_MATCHING=$MONGO_URI_MATCHING,MONGO_URI_USER=$MONGO_URI_USER,REDIS_HOST=$REDIS_HOST,REDIS_PORT=$REDIS_PORT,JWT_SECRET=$JWT_SECRET,USER_SERVICE_URL=$USER_SERVICE_URL,QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL,MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL"
-
-              # Deploy backend with env vars
+              # Deploy backend with Secret Manager references
               gcloud run deploy "$SERVICE" \
                 --image=gcr.io/$PROJECT_ID/$SERVICE:latest \
                 --platform managed \
                 --region $REGION \
                 --allow-unauthenticated \
-                --set-env-vars "$ENV_VARS"
-            fi
+                --set-secrets MONGO_URI_MATCHING=MONGO_URI_MATCHING:latest \
+                --set-secrets MONGO_URI_USER=MONGO_URI_USER:latest \
+                --set-secrets REDIS_HOST=REDIS_HOST:latest \
+                --set-secrets REDIS_PORT=REDIS_PORT:latest \
+                --set-secrets JWT_SECRET=JWT_SECRET:latest \
+                --set-secrets USER_SERVICE_URL=USER_SERVICE_URL:latest \
+                --set-secrets QUESTION_SERVICE_URL=QUESTION_SERVICE_URL:latest \
+                --set-secrets MATCHING_SERVICE_URL=MATCHING_SERVICE_URL:latest
           done
