@@ -11,50 +11,53 @@ jobs:
     env:
       PROJECT_ID: fifth-honor-476010-u0
       REGION: asia-southeast1
+      # Map GitHub secrets to environment variables for clean Bash usage
+      MONGO_URI_MATCHING: ${{ secrets.MONGO_URI_MATCHING }}
+      MONGO_URI_USER: ${{ secrets.MONGO_URI_USER }}
+      REDIS_HOST: ${{ secrets.REDIS_HOST }}
+      REDIS_PORT: ${{ secrets.REDIS_PORT }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      USER_SERVICE_URL: ${{ secrets.USER_SERVICE_URL }}
+      QUESTION_SERVICE_URL: ${{ secrets.QUESTION_SERVICE_URL }}
+      MATCHING_SERVICE_URL: ${{ secrets.MATCHING_SERVICE_URL }}
 
     steps:
-      # 1. Checkout code
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
-      # 3. Setup Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # 4. Authenticate to GCP
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      # 5. Configure Docker for GCR
       - name: Configure Docker for GCR
         run: gcloud auth configure-docker
 
-      # 6. Set GCP project
       - name: Set GCP project
         run: gcloud config set project $PROJECT_ID
 
-      # 7. Build & deploy services
       - name: Build & Deploy Services
         run: |
-          for SERVICE in peerprep user-service question-service matching-service frontend; do
+          SERVICES=("peerprep" "user-service" "question-service" "matching-service" "frontend")
+          for SERVICE in "${SERVICES[@]}"; do
             echo "Building and deploying $SERVICE..."
 
             if [ "$SERVICE" = "frontend" ]; then
-              # Frontend build with Vite env variables
+              # Frontend build with Vite environment variables
               docker buildx build \
                 --platform linux/amd64 \
                 -t gcr.io/$PROJECT_ID/$SERVICE:latest \
-                --build-arg VITE_QUESTION_SERVICE_URL=${{ secrets.QUESTION_SERVICE_URL }} \
-                --build-arg VITE_USER_SERVICE_URL=${{ secrets.USER_SERVICE_URL }} \
-                --build-arg VITE_MATCHING_SERVICE_URL=${{ secrets.MATCHING_SERVICE_URL }} \
+                --build-arg VITE_QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL \
+                --build-arg VITE_USER_SERVICE_URL=$USER_SERVICE_URL \
+                --build-arg VITE_MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL \
                 ./frontend \
                 --push
             else
@@ -66,18 +69,18 @@ jobs:
                 --push
             fi
 
-            # Deploy to Cloud Run
-            gcloud run deploy $SERVICE \
+            # Deploy to Cloud Run with secrets
+            gcloud run deploy "$SERVICE" \
               --image=gcr.io/$PROJECT_ID/$SERVICE:latest \
               --platform managed \
               --region $REGION \
               --allow-unauthenticated \
-              --set-secrets MONGO_URI_MATCHING=${{ secrets.MONGO_URI_MATCHING }} \
-              --set-secrets MONGO_URI_USER=${{ secrets.MONGO_URI_USER }} \
-              --set-secrets REDIS_HOST=${{ secrets.REDIS_HOST }} \
-              --set-secrets REDIS_PORT=${{ secrets.REDIS_PORT }} \
-              --set-secrets JWT_SECRET=${{ secrets.JWT_SECRET }} \
-              --set-secrets USER_SERVICE_URL=${{ secrets.USER_SERVICE_URL }} \
-              --set-secrets QUESTION_SERVICE_URL=${{ secrets.QUESTION_SERVICE_URL }} \
-              --set-secrets MATCHING_SERVICE_URL=${{ secrets.MATCHING_SERVICE_URL }}
+              --set-secrets MONGO_URI_MATCHING=$MONGO_URI_MATCHING \
+              --set-secrets MONGO_URI_USER=$MONGO_URI_USER \
+              --set-secrets REDIS_HOST=$REDIS_HOST \
+              --set-secrets REDIS_PORT=$REDIS_PORT \
+              --set-secrets JWT_SECRET=$JWT_SECRET \
+              --set-secrets USER_SERVICE_URL=$USER_SERVICE_URL \
+              --set-secrets QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL \
+              --set-secrets MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL
           done
