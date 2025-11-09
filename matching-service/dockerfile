@@ -13,7 +13,7 @@ RUN npm install --production
 COPY . .
 
 # Copy production env file
-COPY .env.prod .env
+# COPY .env.prod .env
 
 # Use non-root user
 USER app
