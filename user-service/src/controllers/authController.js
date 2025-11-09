@@ -7,7 +7,6 @@ const authController = {
     try {
       const { username, email, password } = req.body;
 
-      // Basic validation
       if (!username || !email || !password) {
         return res.status(400).json({
           error: 'Missing required fields',
@@ -137,7 +136,6 @@ const authController = {
         });
       }
 
-      // Use User model's comparePassword method
       const isValidPassword = await user.comparePassword(password);
       if (!isValidPassword) {
         return res.status(401).json({
@@ -210,17 +208,13 @@ const authController = {
         .update(resetToken)
         .digest('hex');
 
-      // Store hashed token and expiration in database (10 minutes)
       user.passwordResetToken = hashedToken;
       user.passwordResetExpires = Date.now() + 10 * 60 * 1000;
       await user.save();
 
-      // TODO: Send email with resetToken (not hashedToken)
-      // For development/testing, return the token
-      // In production, remove this and send via email service
       res.status(200).json({
         message: 'Password reset instructions sent to your email',
-        resetToken: resetToken, // Only for testing - send via email instead
+        resetToken: resetToken, 
       });
     } catch (err) {
       console.error('Forgot password error:', err);
@@ -242,7 +236,6 @@ const authController = {
         });
       }
 
-      // Hash the provided token to match stored version
       const hashedToken = crypto
         .createHash('sha256')
         .update(token)
@@ -324,7 +317,6 @@ const authController = {
         }
       }
 
-      // Find user and check if still active
       const user = await User.findById(decoded.userId).select(
         '-password -passwordResetToken -passwordResetExpires'
       );
@@ -378,7 +370,7 @@ const authController = {
   changePassword: async (req, res) => {
     try {
       const { currentPassword, newPassword } = req.body;
-      const userId = req.user._id; // From auth middleware
+      const userId = req.user._id; 
 
       // Validation
       if (!currentPassword || !newPassword) {
@@ -406,7 +398,6 @@ const authController = {
         });
       }
 
-      // Find user and include password for verification
       const user = await User.findById(userId).select('+password');
       if (!user) {
         return res.status(404).json({
@@ -426,7 +417,6 @@ const authController = {
         });
       }
 
-      // Update password (will be hashed by pre-save middleware)
       user.password = newPassword;
       user.passwordChangedAt = new Date();
       await user.save();

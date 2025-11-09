@@ -32,7 +32,6 @@ class WebSocketService {
           return next(new Error('Authentication error: No token provided'));
         }
         
-        // Delegate token verification to user-service
         const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3001';
         
         const verifyResponse = await fetch(`${userServiceUrl}/api/auth/verify-token`, {
@@ -76,16 +75,12 @@ class WebSocketService {
       
       console.log(` User ${socket.user.username} (${userId}) connected via WebSocket`);
       
-      // Store connection
       this.connectedUsers.set(userId, socket);
       
-      // Join user-specific room
       socket.join(`user:${userId}`);
       
-      // Handle client events
       this.handleClientEvents(socket);
       
-      // Handle disconnection
       socket.on('disconnect', () => {
         console.log(` User ${socket.user.username} (${userId}) disconnected`);
         this.connectedUsers.delete(userId);
@@ -96,7 +91,6 @@ class WebSocketService {
   handleClientEvents(socket) {
     const userId = socket.user.userId;
     
-    // Client joins matching queue
     socket.on('join_matching_queue', (data) => {
       console.log(` User ${userId} joining matching queue:`, data);
       
@@ -107,7 +101,6 @@ class WebSocketService {
       });
     });
     
-    // Client leaves matching queue
     socket.on('leave_matching_queue', () => {
       console.log(` User ${userId} leaving matching queue`);
       
@@ -121,7 +114,6 @@ class WebSocketService {
     socket.on('accept_match', (data) => {
       console.log(` User ${userId} accepted match:`, data);
       
-      // Notify the partner
       const partnerId = data.partnerId;
       this.notifyUser(partnerId, {
         type: 'match_accepted',
@@ -139,7 +131,6 @@ class WebSocketService {
     socket.on('decline_match', (data) => {
       console.log(` User ${userId} declined match:`, data);
       
-      // Notify the partner
       const partnerId = data.partnerId;
       this.notifyUser(partnerId, {
         type: 'match_declined',
@@ -171,7 +162,6 @@ class WebSocketService {
     });
   }
   
-  // Setup Redis subscription for notifications
   setupRedisSubscription() {
     redisService.subscriber.psubscribe('matching:notifications:*');
     
@@ -182,7 +172,6 @@ class WebSocketService {
         
         console.log(` Sending notification to user ${userId}:`, notification.type);
         
-        // Send notification via WebSocket
         this.notifyUser(userId, notification);
         
       } catch (err) {
@@ -191,7 +180,6 @@ class WebSocketService {
     });
   }
   
-  // Send notification to specific user
   notifyUser(userId, notification) {
     const socket = this.connectedUsers.get(userId);
     
@@ -203,22 +191,18 @@ class WebSocketService {
     }
   }
   
-  // Broadcast to all connected users
   broadcast(event, data) {
     this.io.emit(event, data);
   }
   
-  // Send to users in specific room
   sendToRoom(room, event, data) {
     this.io.to(room).emit(event, data);
   }
   
-  // Get connected users count
   getConnectedUsersCount() {
     return this.connectedUsers.size;
   }
   
-  // Check if user is connected
   isUserConnected(userId) {
     return this.connectedUsers.has(userId);
   }

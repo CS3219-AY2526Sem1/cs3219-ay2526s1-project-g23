@@ -10,7 +10,6 @@ const authMiddleware = async (req, res, next) => {
       });
     }
     
-    // Delegate token verification to user-service
     const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3001';
     
     const verifyResponse = await fetch(`${userServiceUrl}/auth/verify-token`, {
@@ -45,7 +44,6 @@ const authMiddleware = async (req, res, next) => {
   } catch (err) {
     console.error('Auth middleware error:', err);
     
-    // Handle network/service communication errors
     if (err.code === 'ECONNREFUSED' || err.name === 'FetchError') {
       return res.status(503).json({
         error: 'Service unavailable',

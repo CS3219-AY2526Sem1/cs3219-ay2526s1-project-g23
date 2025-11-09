@@ -4,7 +4,12 @@ import Question from '../models/Question.js';
 const attemptController = {
   recordAttempt: async (req, res) => {
     try {
-      const { userId, questionId, timeTakenSeconds, difficulty } = req.body;
+      const { userId, partnerId, questionId, timeTakenSeconds, difficulty, solution } = req.body;
+
+      // Check for empty required fields
+      if (!userId || !partnerId || !questionId || !solution) {
+        return res.status(400).json({ error: 'Missing required fields (userId, partnerId, questionId, solution)' });
+      }
 
       // Check if question exists
       const question = await Question.findById(questionId);
@@ -12,12 +17,19 @@ const attemptController = {
         return res.status(404).json({ error: 'Question not found' });
       }
 
+      // Prevent the User Id and the Partner Id from being the same user
+      if (userId == partnerId) {
+        return res.status(400).json({ error: 'User and partner cannot be the same' });
+      }
+
       // Create a new attempt record
       const newAttempt = await Attempt.create({
         userId,
+        partnerId,
         questionId,
         timeTakenSeconds,
         difficulty,
+        solution
       });
 
       // Increment the noOfAttempts in Question
@@ -64,23 +76,20 @@ const attemptController = {
         query.userId = userId;
       }
 
-      const attempts = await Attempt.find(query).sort({ createdAt: -1 });
-      const updatedAttempts = await Promise.all(
-        attempts.map(async (attempt) => {
-          const question = await Question.findById(attempt.questionId);
-          return {
-            id: attempt._id,
-            questionId: attempt.questionId,
-            title: question.title,
-            topics: question.topics,
-            difficulty: attempt.difficulty,
-            timeTakenSeconds: attempt.timeTakenSeconds,
-            createdAt: attempt.createdAt,
-          };
-        })
-      );
+      const populatedAttempts = await Attempt.find(query)
+        .sort({ createdAt: -1 })
+        .populate("questionId", "title topics");
 
-      res.status(200).json(updatedAttempts);
+      const result = populatedAttempts.map(attempt => ({
+        id: attempt._id,
+        title: attempt.questionId.title,
+        topics: attempt.questionId.topics,
+        difficulty: attempt.difficulty,
+        timeTakenSeconds: attempt.timeTakenSeconds,
+        createdAt: attempt.createdAt,
+      }));
+
+      res.status(200).json(result);
     } catch (err) {
       res.status(500).json({
         error: 'Failed to retrieve attempts',

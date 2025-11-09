@@ -13,14 +13,12 @@ class MatchingController {
     this.getQueueStats = this.getQueueStats.bind(this);
   }
   
-  // Proficiency level mapping for compatibility checking
   static PROFICIENCY_LEVELS = {
     'beginner': 0,
     'intermediate': 1,
     'advanced': 2
   };
   
-  // Difficulty level mapping for selection (lower difficulty wins)
   static DIFFICULTY_LEVELS = {
     'easy': 0,
     'medium': 1,
@@ -40,7 +38,6 @@ class MatchingController {
         });
       }
       
-      // Check if user already has an active request in Redis (not MongoDB)
       const existingRequest = await redisService.hasActiveRequest(userId);
       
       if (existingRequest) {
@@ -140,12 +137,10 @@ class MatchingController {
   }
   
   isCompatible(criteria1, criteria2) {
-    // 1. Topic must be exactly the same
     if (criteria1.topic !== criteria2.topic) {
       return false;
     }
     
-    // 2. Proficiency can be off by 1 level but not by 2
     const prof1Level = MatchingController.PROFICIENCY_LEVELS[criteria1.proficiency];
     const prof2Level = MatchingController.PROFICIENCY_LEVELS[criteria2.proficiency];
     const proficiencyDiff = Math.abs(prof1Level - prof2Level);
@@ -154,7 +149,6 @@ class MatchingController {
       return false;
     }
     
-    // 3. Language should match (optional, can be relaxed)
     if (criteria1.language && criteria2.language && criteria1.language !== criteria2.language) {
       return false;
     }
@@ -172,12 +166,12 @@ class MatchingController {
       const participants = [
         {
           userId: userId1,
-          username: `user_${userId1}`, // TODO: Fetch actual username from user service
+          username: `user_${userId1}`, 
           originalCriteria: criteria1
         },
         {
           userId: userId2,
-          username: `user_${userId2}`, // TODO: Fetch actual username from user service  
+          username: `user_${userId2}`, 
           originalCriteria: criteria2
         }
       ];
@@ -197,7 +191,6 @@ class MatchingController {
       
       await session.save();
       
-      // Update Redis statistics
       await redisService.redis.hincrby('matching:stats', 'totalMatched', 1);
       
       return session;
@@ -208,17 +201,14 @@ class MatchingController {
     }
   }
   
-  // Resolve final session criteria based on your rules
   resolveSessionCriteria(criteria1, criteria2) {
     return {
       topic: criteria1.topic, 
       
-      // Choose lower difficulty between the two users
       difficulty: this.getLowerDifficulty(criteria1.difficulty, criteria2.difficulty),
       
       proficiency: this.resolveProficiency(criteria1.proficiency, criteria2.proficiency),
       
-      // Language preference (first user's preference or common one)
       language: criteria1.language || criteria2.language || 'python'
     };
   }
@@ -231,7 +221,6 @@ class MatchingController {
     return level1 <= level2 ? diff1 : diff2;
   }
   
-  // Resolve proficiency level (take the lower one for better learning experience)
   resolveProficiency(prof1, prof2) {
     const level1 = MatchingController.PROFICIENCY_LEVELS[prof1];
     const level2 = MatchingController.PROFICIENCY_LEVELS[prof2];
@@ -239,14 +228,11 @@ class MatchingController {
     return level1 <= level2 ? prof1 : prof2;
   }
   
-  // Calculate compatibility score for analytics
   calculateMatchScore(criteria1, criteria2) {
     let score = 0;
     
-    // Same topic = 40 points
     if (criteria1.topic === criteria2.topic) score += 40;
     
-    // Proficiency compatibility
     const profDiff = Math.abs(
       MatchingController.PROFICIENCY_LEVELS[criteria1.proficiency] - 
       MatchingController.PROFICIENCY_LEVELS[criteria2.proficiency]
@@ -255,7 +241,6 @@ class MatchingController {
     if (profDiff === 0) score += 30; // Exact match
     else if (profDiff === 1) score += 20; // Compatible match
     
-    // Difficulty compatibility
     const diffDiff = Math.abs(
       MatchingController.DIFFICULTY_LEVELS[criteria1.difficulty] - 
       MatchingController.DIFFICULTY_LEVELS[criteria2.difficulty]
@@ -269,14 +254,13 @@ class MatchingController {
     return score;
   }
   
-  // Notify both users about the match proposal
   async notifyMatchProposal(userId1, userId2, proposalId, sessionCriteria) {
     const proposalNotification = {
       type: 'match_proposal',
       proposalId,
       partnerId: null,
       sessionCriteria,
-      expiresIn: 60000 // 60 seconds to accept
+      expiresIn: 60000
     };
     
     await redisService.notifyUser(userId1, {
@@ -290,7 +274,6 @@ class MatchingController {
     });
   }
   
-  // Notify both users about the match (when both accept)
   async notifyUsers(userId1, userId2, session) {
     const matchNotification = {
       type: 'match_confirmed',
@@ -316,22 +299,18 @@ class MatchingController {
     try {
       const { userId } = req.user;
       
-      // Check if user has an active proposal first
       const activeProposal = await redisService.getUserActiveProposal(userId);
       
       if (activeProposal) {
-        // Decline the proposal
         await redisService.declineMatchProposal(userId, activeProposal.proposalId);
         
         const partnerId = userId === activeProposal.user1Id ? activeProposal.user2Id : activeProposal.user1Id;
         
-        // Notify partner
         await redisService.notifyUser(partnerId, {
           type: 'match_cancelled',
           message: 'Your match partner cancelled the request. You will be returned to the queue.'
         });
         
-        // Add partner back to queue
         const partnerCriteria = userId === activeProposal.user1Id ? activeProposal.criteria2 : activeProposal.criteria1;
         await redisService.addToQueue(
           partnerId,
@@ -341,7 +320,6 @@ class MatchingController {
           partnerCriteria.language
         );
         
-        // Clean up proposal
         await redisService.cleanupMatchProposal(activeProposal.proposalId, activeProposal.user1Id, activeProposal.user2Id);
         
         return res.status(200).json({
@@ -349,7 +327,6 @@ class MatchingController {
         });
       }
       
-      // Check if user has active request in Redis queue
       const hasActiveRequest = await redisService.hasActiveRequest(userId);
       
       if (!hasActiveRequest) {
@@ -359,7 +336,6 @@ class MatchingController {
         });
       }
       
-      // Remove from all possible topic queues (Redis handles this efficiently)
       const topics = ['Arrays', 'Strings', 'Algorithms', 'Data Structures', 'Brainteasers'];
       for (const topic of topics) {
         await redisService.removeFromQueue(userId, topic);
@@ -506,7 +482,6 @@ class MatchingController {
     try {
       const { userId } = req.user;
       
-      // First check if user has a completed match session in MongoDB
       const completedMatch = await MatchRequest.findOne({ 
         userId, 
         status: 'matched' 
@@ -520,7 +495,6 @@ class MatchingController {
         });
       }
       
-      // Check if user has an active match proposal
       const activeProposal = await redisService.getUserActiveProposal(userId);
       
       if (activeProposal) {
@@ -540,7 +514,6 @@ class MatchingController {
         });
       }
       
-      // Check if user has active request in Redis queue
       const hasActiveRequest = await redisService.hasActiveRequest(userId);
       
       if (!hasActiveRequest) {
@@ -550,7 +523,6 @@ class MatchingController {
         });
       }
       
-      // Get user's request details and queue position from Redis
       const topics = ['Arrays', 'Strings', 'Algorithms', 'Data Structures', 'Brainteasers'];
       let userRequest = null;
       let position = -1;
@@ -580,7 +552,7 @@ class MatchingController {
           proficiency: userRequest.proficiency,
           language: userRequest.language
         },
-        queuePosition: position + 1, // Make it 1-indexed for users
+        queuePosition: position + 1, 
         createdAt: new Date(parseInt(userRequest.timestamp)),
         estimatedWait: this.estimateWaitTime(userRequest.topic, position)
       });
@@ -594,7 +566,6 @@ class MatchingController {
     }
   }
   
-  // Get queue statistics (admin endpoint)
   async getQueueStats(req, res) {
     try {
       const stats = await redisService.getQueueStats();
@@ -608,17 +579,14 @@ class MatchingController {
     }
   }
   
-  // Utility functions
   generateRoomId() {
     return `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
   
   estimateWaitTime(topic, position) {
-    // Simple estimation: 5 seconds per position ahead, max 30 seconds
     return Math.min(30, Math.max(5, position * 5));
   }
 
-  // Fetch a question from the question service based on session criteria and user history
   async getQuestionId(sessionCriteria, userId1, userId2) {
     try {
       const { topic, difficulty } = sessionCriteria;
@@ -627,7 +595,6 @@ class MatchingController {
       
       const questionServiceUrl = process.env.QUESTION_SERVICE_URL || 'http://localhost:3002';
       
-      // Fetch questions for the given topic and difficulty
       const response = await fetch(`${questionServiceUrl}/questions?type=${encodeURIComponent(topic)}&difficulty=${encodeURIComponent(difficulty)}`);
       
       if (!response.ok) {
@@ -641,13 +608,11 @@ class MatchingController {
         return null;
       }
       
-      // Fetch question history for both users
       const userHistory1 = await this.getUserQuestionHistory(userId1);
       const userHistory2 = await this.getUserQuestionHistory(userId2);
       
       const questions = data.questions;
       
-      // Try strategies in order of preference
       const strategies = [
         {
           name: 'questionsNotDoneByBoth',
@@ -661,7 +626,7 @@ class MatchingController {
         },
         {
           name: 'anyQuestion',
-          selector: () => true, // Select all questions
+          selector: () => true, 
           message: 'All questions done by both users, selected random'
         }
       ];
@@ -685,7 +650,6 @@ class MatchingController {
     }
   }
 
-  // Helper function to get user's question history
   async getUserQuestionHistory(userId) {
     try {
       const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3001';

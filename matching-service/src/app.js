@@ -13,7 +13,6 @@ dotenv.config();
 const app = express();
 const server = createServer(app);
 
-// Port configuration
 const PORT = process.env.PORT || 3003;
 
 const allowedOrigins = [
@@ -144,7 +143,6 @@ function setupGracefulShutdown() {
     }, 10000);
   };
   
-  // Handle different termination signals
   process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
   process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2'));

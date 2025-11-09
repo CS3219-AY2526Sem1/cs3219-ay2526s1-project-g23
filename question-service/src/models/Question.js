@@ -10,7 +10,7 @@ const questionSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
   topics: { type: Array, required: true },
-  hint: { type: String },
+  hints: { type: Array, default: [] },
 });
 
 const Question = mongoose.model('Question', questionSchema);
