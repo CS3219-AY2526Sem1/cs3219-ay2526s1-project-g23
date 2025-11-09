@@ -60,6 +60,14 @@ jobs:
                 --build-arg VITE_MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL \
                 ./frontend \
                 --push
+
+              # Deploy frontend without backend secrets
+              gcloud run deploy "$SERVICE" \
+                --image=gcr.io/$PROJECT_ID/$SERVICE:latest \
+                --platform managed \
+                --region $REGION \
+                --allow-unauthenticated
+
             else
               # Backend services
               docker buildx build \
@@ -67,30 +75,16 @@ jobs:
                 -t gcr.io/$PROJECT_ID/$SERVICE:latest \
                 ./$SERVICE \
                 --push
-            fi
 
-            # Deploy to Cloud Run with environment variables
-            if [ "$SERVICE" = "frontend" ]; then
-              # Frontend does not need backend secrets
-              gcloud run deploy "$SERVICE" \
-                --image=gcr.io/$PROJECT_ID/$SERVICE:latest \
-                --platform managed \
-                --region $REGION \
-                --allow-unauthenticated
-            else
-              # Backend services with env vars from GitHub secrets
+              # Compose environment variables string for Cloud Run
+              ENV_VARS="MONGO_URI_MATCHING=$MONGO_URI_MATCHING,MONGO_URI_USER=$MONGO_URI_USER,REDIS_HOST=$REDIS_HOST,REDIS_PORT=$REDIS_PORT,JWT_SECRET=$JWT_SECRET,USER_SERVICE_URL=$USER_SERVICE_URL,QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL,MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL"
+
+              # Deploy backend with env vars
               gcloud run deploy "$SERVICE" \
                 --image=gcr.io/$PROJECT_ID/$SERVICE:latest \
                 --platform managed \
                 --region $REGION \
                 --allow-unauthenticated \
-                --set-env-vars MONGO_URI_MATCHING=$MONGO_URI_MATCHING, \
-                                MONGO_URI_USER=$MONGO_URI_USER, \
-                                REDIS_HOST=$REDIS_HOST, \
-                                REDIS_PORT=$REDIS_PORT, \
-                                JWT_SECRET=$JWT_SECRET, \
-                                USER_SERVICE_URL=$USER_SERVICE_URL, \
-                                QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL, \
-                                MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL
+                --set-env-vars "$ENV_VARS"
             fi
           done
