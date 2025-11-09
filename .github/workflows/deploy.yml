@@ -58,7 +58,7 @@ jobs:
                 --build-arg VITE_QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL \
                 --build-arg VITE_USER_SERVICE_URL=$USER_SERVICE_URL \
                 --build-arg VITE_MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL \
-                ./frontend \
+                ./peerprep \
                 --push
 
               # Deploy frontend without backend secrets
