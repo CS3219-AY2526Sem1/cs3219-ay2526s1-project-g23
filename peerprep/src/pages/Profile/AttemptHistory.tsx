@@ -1,4 +1,5 @@
 import { getUserAttempts, getQuestionById } from "@/api/question-service";
+import { getUserStats } from "@/api/user-service";
 import Spinner from "@/components/custom/spinner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,10 +18,12 @@ import {
 
 type Attempt = {
   id: string;
+  partnerId: string | null;
   questionId: string;
   title: string;
   difficulty: string;
   topics: string[];
+  solution: string;
   timeTakenSeconds: number;
   createdAt: string;
 };
@@ -29,6 +32,7 @@ interface Question {
   _id: string;
   title: string;
   content: string;
+  topics: string[];
   difficulty: string;
 }
 
@@ -36,6 +40,7 @@ const AttemptHistory = () => {
   const [loading, startTransition] = useTransition();
   const [data, setData] = useState([]);
   const [error, setError] = useState("");
+  const [partnerNames, setPartnerNames] = useState<Record<string, string>>({});
   const [selectedAttempt, setSelectedAttempt] = useState<Attempt | null>(null);
   const [question, setQuestion] = useState<Question | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -46,18 +51,49 @@ const AttemptHistory = () => {
       try {
         const attempts = await getUserAttempts();
         setData(attempts);
-      } catch (error) {
+
+        // Collect unique non-null partner IDs
+        const uniquePartnerIds: string[] = Array.from(
+          new Set(
+            attempts
+              .map((a: Attempt) => a.partnerId)
+              .filter(
+                (id: string | null | undefined): id is string =>
+                  typeof id === "string" && id.trim() !== ""
+              )
+          )
+        );
+        
+        // Fetch usernames for each valid partner in parallel
+        const partnerData = await Promise.all(
+          uniquePartnerIds.map(async (id: string) => {
+            try {
+              const stats = await getUserStats(id);
+              return { id, name: stats.username || "Unknown User" };
+            } catch (err) {
+              console.error("Error fetching partner info for", id, err);
+              return { id, name: "Unknown User" };
+            }
+          })
+        );
+
+        // Convert to { partnerId: username } mapping
+        const partnerMap: Record<string, string> = Object.fromEntries(
+          partnerData.map((p) => [p.id, p.name])
+        );
+
+        setPartnerNames(partnerMap);
+      } catch (error: any) {
         setError(error.message);
       }
     });
   }, []);
 
   const handleViewSubmission = async (attempt: Attempt) => {
-    setModalOpen(true);
     setSelectedAttempt(attempt);
+    setModalOpen(true);
     setQuestionLoading(true);
     try {
-      console.log("Fetching question for attempt:", attempt);
       const q = await getQuestionById(attempt.questionId);
       setQuestion(q);
     } catch (err) {
@@ -83,6 +119,15 @@ const AttemptHistory = () => {
     {
       accessorKey: "difficulty",
       header: "Difficulty",
+    },
+    {
+      accessorKey: "partnerId",
+      header: "Partner",
+      cell: ({ getValue }) => {
+        const partnerId = getValue() as string | null;
+        if (!partnerId) return <span className="text-gray-400">—</span>; // no partner
+        return <span>{partnerNames[partnerId] || "Loading..."}</span>;
+      },
     },
     {
       accessorKey: "timeTakenSeconds",
@@ -146,24 +191,45 @@ const AttemptHistory = () => {
               <Spinner />
             </div>
           ) : (
-            question && (
+            question &&
+            selectedAttempt && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                {/* Left side — Question */}
                 <div className="prose max-w-none text-gray-700 border-r border-gray-200 pr-4 overflow-x-auto break-words">
                   <h3 className="font-semibold mb-3 text-lg">Question</h3>
+
+                  <div className="mb-4 text-sm text-gray-600 space-y-1">
+                    <p>
+                      <strong>Difficulty:</strong> {question.difficulty}
+                    </p>
+                    {question.topics && question.topics.length > 0 && (
+                      <p>
+                        <strong>Topics:</strong>{" "}
+                        {question.topics.map((t) => (
+                          <Badge
+                            key={t}
+                            variant="outline"
+                            className="ml-1 text-xs"
+                          >
+                            {t}
+                          </Badge>
+                        ))}
+                      </p>
+                    )}
+                  </div>
+
                   <div
                     className="[&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words"
                     dangerouslySetInnerHTML={{ __html: question.content }}
                   />
                 </div>
-
-                {/* Right side — User Submission */}
                 <div className="text-gray-800">
                   <h3 className="font-semibold mb-3 text-lg">
                     Your Submission
                   </h3>
                   <pre className="bg-gray-900 text-gray-100 rounded-md p-3 text-sm overflow-x-auto h-[70vh]">
-                    {"// No code found"}
+                    {selectedAttempt.solution
+                      ? selectedAttempt.solution
+                      : "// No code found"}
                   </pre>
                 </div>
               </div>
