@@ -169,11 +169,11 @@ async function startServer() {
     
     websocketService.initialize(server);
     
-    server.listen(PORT, () => {
+    server.listen(PORT, '0.0.0.0', () => {
       console.log(` Matching Service listening on port ${PORT}`);
-      console.log(` WebSocket endpoint: ws://localhost:${PORT}`);
-      console.log(` Health check: http://localhost:${PORT}/health`);
-      console.log(` API endpoints: http://localhost:${PORT}/api/matching/*`);
+      console.log(` WebSocket endpoint: ws://0.0.0.0:${PORT}`);
+      console.log(` Health check: http://0.0.0.0:${PORT}/health`);
+      console.log(` API endpoints: http://0.0.0.0:${PORT}/api/matching/*`);
     });
     
     setupGracefulShutdown();
