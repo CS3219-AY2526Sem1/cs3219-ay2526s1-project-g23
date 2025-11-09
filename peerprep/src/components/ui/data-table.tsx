@@ -26,7 +26,7 @@ interface DataTableProps<TData, TValue> {
     pages: number;
     limit: number;
     total: number;
-    onPageChange: () => void;
+    onPageChange: (next: boolean) => void; // <-- accept boolean
   };
   error?: string;
 }
