@@ -7,9 +7,6 @@ const router = express.Router();
 // Submit a new match request
 router.post('/request', authMiddleware, matchingController.submitMatchRequest);
 
-// Cancel current match request  
-router.delete('/cancel', authMiddleware, matchingController.cancelMatchRequest);
-
 // Accept match proposal
 router.post('/proposal/:proposalId/accept', authMiddleware, matchingController.acceptMatchProposal);
 
@@ -18,6 +15,15 @@ router.post('/proposal/:proposalId/decline', authMiddleware, matchingController.
 
 // Get current match status
 router.get('/status', authMiddleware, matchingController.getMatchStatus);
+
+// Cancel current match request  
+router.delete('/cancel', authMiddleware, matchingController.cancelMatchRequest);
+
+// Update participant status in a match session
+router.patch('/sessions/:sessionId/participant-status', authMiddleware, matchingController.updateParticipantStatus);
+
+// Update session status
+router.patch('/sessions/:sessionId/session-status', authMiddleware, matchingController.updateSessionStatus);
 
 router.get('/stats', matchingController.getQueueStats);
 export default router;

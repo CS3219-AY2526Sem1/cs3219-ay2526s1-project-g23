@@ -11,6 +11,8 @@ class MatchingController {
     this.declineMatchProposal = this.declineMatchProposal.bind(this);
     this.getMatchStatus = this.getMatchStatus.bind(this);
     this.getQueueStats = this.getQueueStats.bind(this);
+    this.updateParticipantStatus = this.updateParticipantStatus.bind(this);
+    this.updateSessionStatus = this.updateSessionStatus.bind(this);
   }
   
   static PROFICIENCY_LEVELS = {
@@ -671,6 +673,122 @@ class MatchingController {
     } catch (err) {
       console.error(`Error fetching attempts history for user ${userId}:`, err);
       return [];
+    }
+  }
+  // Update participant status in match session
+  async updateParticipantStatus(req, res) {
+    try {
+      const { userId } = req.user;
+      const { sessionId } = req.params;
+      const { status } = req.body;
+
+      if (!status || !['active', 'completed'].includes(status)) {
+        return res.status(400).json({
+          error: 'Invalid status',
+          message: 'Status must be either "active" or "completed"'
+        });
+      }
+
+      // Find the match session
+      const session = await MatchSession.findById(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({
+          error: 'Session not found',
+          message: 'Match session not found'
+        });
+      }
+
+      // Check if user is a participant in this session
+      const participant = session.participants.find(p => p.userId.toString() === userId);
+      
+      if (!participant) {
+        return res.status(403).json({
+          error: 'Not authorized',
+          message: 'You are not a participant in this session'
+        });
+      }
+
+      // Update participant status
+      participant.status = status;
+
+      // Save the session
+      await session.save();
+
+      res.status(200).json({
+        message: `Participant status updated to ${status}`,
+        session: session,
+        participant: participant
+      });
+
+    } catch (err) {
+      console.error('Update participant status error:', err);
+      res.status(500).json({
+        error: 'Failed to update participant status',
+        message: err.message
+      });
+    }
+  }
+  // Update session status
+  async updateSessionStatus(req, res) {
+    try {
+      const { userId } = req.user;
+      const { sessionId } = req.params;
+      const { status } = req.body;
+
+      if (!status || !['created', 'active', 'completed', 'abandoned', 'expired'].includes(status)) {
+        return res.status(400).json({
+          error: 'Invalid status',
+          message: 'Status must be one of: created, active, completed, abandoned, expired'
+        });
+      }
+
+      // Find the match session
+      const session = await MatchSession.findById(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({
+          error: 'Session not found',
+          message: 'Match session not found'
+        });
+      }
+
+      // Check if user is a participant in this session
+      const isParticipant = session.participants.some(p => p.userId.toString() === userId);
+      
+      if (!isParticipant) {
+        return res.status(403).json({
+          error: 'Not authorized',
+          message: 'You are not a participant in this session'
+        });
+      }
+
+      // Update session status
+      session.status = status;
+
+      // Set timestamps based on status change
+      if (status === 'completed' && !session.endedAt) {
+        session.endedAt = new Date();
+      }
+      
+      // Set the duration if endedAt is set
+      if (session.endedAt && session.startedAt) {
+        session.duration = Math.floor((session.endedAt - session.startedAt) / 1000);
+      }
+      // Save the session
+      await session.save();
+
+      res.status(200).json({
+        message: `Session status updated to ${status}`,
+        session: session
+      });
+
+    } catch (err) {
+      console.error('Update session status error:', err);
+      res.status(500).json({
+        error: 'Failed to update session status',
+        message: err.message
+      });
     }
   }
 }
