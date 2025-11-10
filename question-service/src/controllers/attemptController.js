@@ -82,10 +82,13 @@ const attemptController = {
 
       const result = populatedAttempts.map(attempt => ({
         id: attempt._id,
+        questionId: attempt.questionId._id,
+        partnerId: attempt.partnerId,
         title: attempt.questionId.title,
         topics: attempt.questionId.topics,
         difficulty: attempt.difficulty,
         timeTakenSeconds: attempt.timeTakenSeconds,
+        solution: attempt.solution,
         createdAt: attempt.createdAt,
       }));
 
