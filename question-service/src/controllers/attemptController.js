@@ -7,8 +7,8 @@ const attemptController = {
       const { userId, partnerId, questionId, timeTakenSeconds, difficulty, solution } = req.body;
 
       // Check for empty required fields
-      if (!userId || !partnerId || !questionId || !solution) {
-        return res.status(400).json({ error: 'Missing required fields (userId, partnerId, questionId, solution)' });
+      if (!userId || !partnerId || !questionId) {
+        return res.status(400).json({ error: 'Missing required fields (userId, partnerId, questionId)' });
       }
 
       // Check if question exists

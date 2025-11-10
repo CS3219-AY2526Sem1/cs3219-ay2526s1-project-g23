@@ -6,6 +6,7 @@ import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
 import { WebSocketServer } from "ws";
+import collaborationRoutes from "./routes/collaboration.js";
 
 // Get the directory name for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -17,6 +18,8 @@ dotenv.config({ path: path.join(__dirname, "../.env") });
 const app = express();
 app.use(express.json());
 app.use(cors({ origin: "http://localhost:5173" }));
+
+app.use("/collaboration", collaborationRoutes);
 
 const server = createServer(app);
 const wss = new WebSocketServer({ server });

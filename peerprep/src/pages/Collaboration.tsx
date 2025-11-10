@@ -1,6 +1,17 @@
+import { exitSession } from "@/api/collaboration-service";
 import { getMatchSession } from "@/api/matching-service";
 import { getQuestionById } from "@/api/question-service";
 import Spinner from "@/components/custom/spinner";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,11 +32,14 @@ import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 
 const Collaboration = () => {
+  const userId = localStorage.getItem("userId") || "";
   const username = localStorage.getItem("username") || "";
 
   const navigate = useNavigate();
   const { sessionId } = useParams();
   const [loading, startTransition] = useTransition();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [exitLoading, setExitLoading] = useState(false);
 
   const ydocument = useMemo(() => new Y.Doc(), []);
   const [editor, setEditor] = useState<any>(null);
@@ -53,10 +67,16 @@ const Collaboration = () => {
         session = await getMatchSession(sessionId!);
       } catch {
         navigate("/");
-        toast.error("Collaboration session does not exist");
       }
 
       const { questionId, participants } = session;
+      const self = participants.find(
+        (user: { username: string }) => user.username == username
+      );
+      if (!self || self.status == "completed") {
+        navigate("/");
+      }
+
       const question = await getQuestionById(questionId);
       setQuestion(question);
 
@@ -176,6 +196,20 @@ const Collaboration = () => {
     setEditor(editor);
   };
 
+  const onExit = async () => {
+    try {
+      setExitLoading(true);
+      await exitSession(userId, sessionId!, editor.getValue());
+      toast.success("Exited from session, attempt stored successfully");
+      setDialogOpen(false);
+      navigate("/");
+    } catch {
+      toast.error("Failed to exit session");
+    } finally {
+      setExitLoading(false);
+    }
+  };
+
   if (loading) {
     return <Spinner />;
   }
@@ -211,7 +245,26 @@ const Collaboration = () => {
             Collaborating With:{" "}
             <span className="font-medium">{sessionPartner}</span>
           </div>
-          <Button>End Session</Button>
+          <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <AlertDialogTrigger asChild>
+              <Button onClick={() => setDialogOpen(true)}>Exit Session</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This collaboration session will end for you. You will not be
+                  allowed to re-enter afterwards.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <Button onClick={onExit} disabled={exitLoading}>
+                  {exitLoading && <Spinner />} Exit
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
         <Card className="h-full">
           <CardContent className="h-full px-1">
