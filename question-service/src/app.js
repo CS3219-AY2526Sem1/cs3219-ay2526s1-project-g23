@@ -18,7 +18,6 @@ const app = express();
 app.use(express.json());
 const allowedOrigins = [
   'http://localhost:5173', 
-  'https://peerprep-6619362751.asia-southeast1.run.app/',
   process.env.FRONTEND_URL // dynamic URL from deployment
 ];
 

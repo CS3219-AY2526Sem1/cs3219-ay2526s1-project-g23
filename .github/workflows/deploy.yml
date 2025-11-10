@@ -12,6 +12,12 @@ jobs:
       PROJECT_ID: fifth-honor-476010-u0
       REGION: asia-southeast1
 
+      # Fixed service names → fixed Cloud Run URLs
+      FRONTEND_SERVICE: peerprep-frontend-6619362751
+      USER_SERVICE: user-service-6619362751
+      QUESTION_SERVICE: question-service-6619362751
+      MATCHING_SERVICE: matching-service-6619362751
+
     steps:
       # 1️⃣ Checkout repository
       - name: Checkout repository
@@ -41,53 +47,66 @@ jobs:
       - name: Set GCP project
         run: gcloud config set project $PROJECT_ID
 
-      # 7️⃣ Deploy Frontend (static backend URLs)
+      # 7️⃣ Deploy Frontend (using fixed backend URLs)
       - name: Build & Deploy Frontend
         run: |
           TAG=$(date +%s)
           echo "🔖 Using tag: $TAG"
 
+          # Build frontend with fixed backend URLs
           docker buildx build \
             -f ./peerprep/dockerfile \
             --platform linux/amd64 \
             --no-cache \
             -t gcr.io/$PROJECT_ID/peerprep:$TAG \
-            --build-arg VITE_USER_SERVICE_URL=${{ secrets.USER_SERVICE_URL }} \
-            --build-arg VITE_QUESTION_SERVICE_URL=${{ secrets.QUESTION_SERVICE_URL }} \
-            --build-arg VITE_MATCHING_SERVICE_URL=${{ secrets.MATCHING_SERVICE_URL }} \
+            --build-arg VITE_USER_SERVICE_URL="https://${USER_SERVICE}.${REGION}.run.app" \
+            --build-arg VITE_QUESTION_SERVICE_URL="https://${QUESTION_SERVICE}.${REGION}.run.app" \
+            --build-arg VITE_MATCHING_SERVICE_URL="https://${MATCHING_SERVICE}.${REGION}.run.app" \
             ./peerprep \
             --push
 
-          gcloud run deploy peerprep \
+          # Deploy frontend with fixed service name
+          gcloud run deploy $FRONTEND_SERVICE \
             --image=gcr.io/$PROJECT_ID/peerprep:$TAG \
             --platform managed \
             --region $REGION \
             --allow-unauthenticated
 
-      # 8️⃣ Deploy Backends (static frontend URL)
+      # 8️⃣ Deploy Backends (using fixed frontend URL)
       - name: Build & Deploy Backends
         run: |
           TAG=$(date +%s)
-          FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+          FRONTEND_URL="https://${FRONTEND_SERVICE}.${REGION}.run.app"
           echo "Frontend URL: $FRONTEND_URL"
 
-          SERVICES="user-service,question-service,matching-service"
-          IFS=',' read -ra SRV <<< "$SERVICES"
+          # Services mapping: service name → folder name
+          SERVICES=(
+            "$USER_SERVICE:user-service"
+            "$QUESTION_SERVICE:question-service"
+            "$MATCHING_SERVICE:matching-service"
+          )
 
-          for SERVICE in "${SRV[@]}"; do
-            echo "🚀 Building $SERVICE..."
+          for ENTRY in "${SERVICES[@]}"; do
+            SERVICE_NAME="${ENTRY%%:*}"
+            FOLDER_NAME="${ENTRY##*:}"
+
+            echo "🚀 Building $FOLDER_NAME..."
             docker buildx build \
               --platform linux/amd64 \
               --no-cache \
-              -t gcr.io/$PROJECT_ID/$SERVICE:$TAG \
-              ./$SERVICE \
+              -t gcr.io/$PROJECT_ID/$FOLDER_NAME:$TAG \
+              "./$FOLDER_NAME" \
               --push
 
-            echo "☁️ Deploying $SERVICE..."
-            gcloud run deploy "$SERVICE" \
-              --image=gcr.io/$PROJECT_ID/$SERVICE:$TAG \
+            echo "☁️ Deploying $SERVICE_NAME..."
+            gcloud run deploy "$SERVICE_NAME" \
+              --image=gcr.io/$PROJECT_ID/$FOLDER_NAME:$TAG \
               --platform managed \
               --region $REGION \
               --allow-unauthenticated \
-              --set-env-vars FRONTEND_URL=$FRONTEND_URL
-          done
+              --set-env-vars FRONTEND_URL=$FRONTEND_URL,\
+            MONGO_URI_USER=${{ secrets.MONGO_URI_USER }},\
+            MONGO_URI_QUESTION=${{ secrets.MONGO_URI_QUESTION }},\
+            MONGO_URI_MATCHING=${{ secrets.MONGO_URI_MATCHING }},\
+            JWT_SECRET=${{ secrets.JWT_SECRET }},\
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
