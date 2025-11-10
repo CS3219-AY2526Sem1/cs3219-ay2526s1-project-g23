@@ -45,8 +45,8 @@ const matchSessionSchema = new mongoose.Schema({
   
   status: { 
     type: String, 
-    default: 'created',
-    enum: ['created', 'active', 'completed', 'abandoned', 'expired']
+    default: 'active',
+    enum: ['active', 'completed']
   },
   
   // Question assigned for this session

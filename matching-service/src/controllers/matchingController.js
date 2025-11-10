@@ -1,4 +1,3 @@
-import MatchRequest from '../models/MatchRequest.js';
 import MatchSession from '../models/MatchSession.js';
 import redisService from '../services/redisService.js';
 
@@ -39,13 +38,20 @@ class MatchingController {
           message: 'Topic, difficulty, and proficiency are required'
         });
       }
+
+      // Check if user has active matchSession first
+      const activeMatchSession = await MatchSession.findOne({ 
+        'participants.userId': userId, 
+        'participants.status': 'active',
+      });
+
       
       const existingRequest = await redisService.hasActiveRequest(userId);
       
-      if (existingRequest) {
+      if (existingRequest || activeMatchSession) {
         return res.status(409).json({
           error: 'Active request exists',
-          message: 'You already have an active match request'
+          message: 'You already have an active match request/session'
         });
       }
       
@@ -169,12 +175,14 @@ class MatchingController {
         {
           userId: user1.id,
           username: user1.username, 
-          originalCriteria: criteria1
+          originalCriteria: criteria1,
+          status: 'active'
         },
         {
           userId: user2.id,
           username: user2.username, 
-          originalCriteria: criteria2
+          originalCriteria: criteria2,
+          status: 'active'
         }
       ];
       
@@ -382,28 +390,6 @@ class MatchingController {
           proposal.criteria2
         );
         
-        // Create match request records in MongoDB
-        await MatchRequest.create([
-          {
-            userId: proposal.user1.id,
-            username: proposal.user1.username,
-            criteria: proposal.criteria1,
-            status: 'matched',
-            matchedWith: proposal.user2.id,
-            sessionId: session._id,
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
-          },
-          {
-            userId: proposal.user2.id,
-            username: proposal.user2.username,
-            criteria: proposal.criteria2,
-            status: 'matched',
-            matchedWith: proposal.user1.id,
-            sessionId: session._id,
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
-          }
-        ]);
-        
         // Notify both users of confirmed match
         await this.notifyUsers(proposal.user1.id, proposal.user2.id, session);
         
@@ -486,16 +472,18 @@ class MatchingController {
     try {
       const { userId } = req.user;
       
-      const completedMatch = await MatchRequest.findOne({ 
-        userId, 
-        status: 'matched' 
-      }).populate('sessionId');
+      // Check for active session first
+      const activeSession = await MatchSession.findOne({
+        'participants.userId': userId,
+        'participants.status': 'active'
+      });
       
-      if (completedMatch) {
+      if (activeSession) {
+        const partner = activeSession.participants.find(p => p.userId.toString() !== userId);
         return res.status(200).json({
-          status: 'matched',
-          session: completedMatch.sessionId,
-          partnerId: completedMatch.matchedWith
+          status: 'active',
+          session: activeSession,
+          partnerId: partner ? partner.userId : null
         });
       }
       
@@ -762,10 +750,10 @@ class MatchingController {
       const { sessionId } = req.params;
       const { status } = req.body;
 
-      if (!status || !['created', 'active', 'completed', 'abandoned', 'expired'].includes(status)) {
+      if (!status || !['active', 'completed'].includes(status)) {
         return res.status(400).json({
           error: 'Invalid status',
-          message: 'Status must be one of: created, active, completed, abandoned, expired'
+          message: 'Status must be one of: active, completed'
         });
       }
 
