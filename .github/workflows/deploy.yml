@@ -13,7 +13,7 @@ jobs:
       REGION: asia-southeast1
 
     steps:
-      # 1️⃣ Checkout the repository
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -41,7 +41,7 @@ jobs:
       - name: Set GCP project
         run: gcloud config set project $PROJECT_ID
 
-      # 7️⃣ Build & Deploy Services
+      # 7️⃣ Build & Deploy All Services
       - name: Build & Deploy Services
         env:
           MONGO_URI_MATCHING: ${{ secrets.MONGO_URI_MATCHING }}
@@ -53,10 +53,10 @@ jobs:
           USER_SERVICE_URL: ${{ secrets.USER_SERVICE_URL }}
           QUESTION_SERVICE_URL: ${{ secrets.QUESTION_SERVICE_URL }}
           MATCHING_SERVICE_URL: ${{ secrets.MATCHING_SERVICE_URL }}
-          PROJECT_ID: fifth-honor-476010-u0
-          REGION: asia-southeast1
+          PROJECT_ID: ${{ env.PROJECT_ID }}
+          REGION: ${{ env.REGION }}
         run: |
-          set -e  # fail fast if any command fails
+          set -e
 
           # Timestamp tag to force fresh deploy
           TAG=$(date +%s)
@@ -69,22 +69,29 @@ jobs:
             echo "🚀 Building $SERVICE..."
 
             if [ "$SERVICE" = "peerprep" ]; then
-              # Debug: List files before build
-              echo "📂 Files in $SERVICE directory:"
-              ls -R ./$SERVICE
+              # Frontend build
+              DOCKERFILE_PATH=./peerprep/dockerfile
+              BUILD_CONTEXT=./peerprep
 
-              # Build frontend with Vite args
+              echo "📂 Build context: $BUILD_CONTEXT"
+              echo "📝 Dockerfile: $DOCKERFILE_PATH"
+
               docker buildx build \
+                -f $DOCKERFILE_PATH \
                 --platform linux/amd64 \
                 --no-cache \
                 -t gcr.io/$PROJECT_ID/$SERVICE:$TAG \
                 --build-arg VITE_QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL \
                 --build-arg VITE_USER_SERVICE_URL=$USER_SERVICE_URL \
                 --build-arg VITE_MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL \
-                ./$SERVICE \
+                $BUILD_CONTEXT \
                 --push
 
-              # Deploy to Cloud Run
+              # Debug: list contents of dist
+              echo "📂 Listing /usr/share/nginx/html inside built frontend image:"
+              docker run --rm gcr.io/$PROJECT_ID/$SERVICE:$TAG ls -R /usr/share/nginx/html
+
+              # Deploy frontend to Cloud Run
               echo "☁️ Deploying $SERVICE to Cloud Run..."
               gcloud run deploy "$SERVICE" \
                 --image=gcr.io/$PROJECT_ID/$SERVICE:$TAG \
@@ -92,11 +99,7 @@ jobs:
                 --region $REGION \
                 --allow-unauthenticated
             else
-              # Debug: List files before build
-              echo "📂 Files in $SERVICE directory:"
-              ls -R ./$SERVICE
-
-              # Build backend
+              # Backend build
               docker buildx build \
                 --platform linux/amd64 \
                 --no-cache \
