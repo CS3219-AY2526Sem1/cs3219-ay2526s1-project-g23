@@ -94,7 +94,7 @@ jobs:
       # 3️⃣ Optional: Redeploy services that depend on backend URLs
       - name: Redeploy services with backend URLs
         run: |
-          # For example, if frontend needs backend URLs as build args
+          TAG=$(date +%s)
           docker buildx build \
             -f ./peerprep/dockerfile \
             --platform linux/amd64 \
@@ -112,3 +112,4 @@ jobs:
             --region $REGION \
             --allow-unauthenticated \
             --set-env-vars USER_SERVICE_URL=$USER_SERVICE_URL,QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL,MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL
+
