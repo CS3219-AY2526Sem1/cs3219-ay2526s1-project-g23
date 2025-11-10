@@ -1,74 +1,88 @@
-name: Deploy to Cloud Run
+name: CI/CD to Cloud Run
 
 on:
   push:
     branches:
-      - '*'
-
-env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  REGION: asia-southeast1
-  SERVICES: peerprep,user-service,question-service,matching-service,frontend
+      - "*"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      PROJECT_ID: fifth-honor-476010-u0
+      REGION: asia-southeast1
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
-          export_default_credentials: true
+          node-version: 18
 
-      - name: Configure Docker authentication
-        run: gcloud auth configure-docker gcr.io --quiet
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      - name: Build and push Docker images
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker
+
+      - name: Set GCP project
+        run: gcloud config set project $PROJECT_ID
+
+      - name: Build & Deploy Services
+        env:
+          MONGO_URI_MATCHING: ${{ secrets.MONGO_URI_MATCHING }}
+          MONGO_URI_USER: ${{ secrets.MONGO_URI_USER }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          USER_SERVICE_URL: ${{ secrets.USER_SERVICE_URL }}
+          QUESTION_SERVICE_URL: ${{ secrets.QUESTION_SERVICE_URL }}
+          MATCHING_SERVICE_URL: ${{ secrets.MATCHING_SERVICE_URL }}
+          PROJECT_ID: fifth-honor-476010-u0
+          REGION: asia-southeast1
         run: |
+          SERVICES="peerprep,user-service,question-service,matching-service,frontend"
           IFS=',' read -ra SRV <<< "$SERVICES"
+
           for SERVICE in "${SRV[@]}"; do
             echo "🚀 Building $SERVICE..."
-            docker build -t "gcr.io/$PROJECT_ID/$SERVICE:latest" "$SERVICE"
-            docker push "gcr.io/$PROJECT_ID/$SERVICE:latest"
-          done
 
-      # 🔧 Optional cleanup step (only needs to run once per service)
-      - name: Clear old env vars (run once if switching to secrets)
-        run: |
-          IFS=',' read -ra SRV <<< "$SERVICES"
-          for SERVICE in "${SRV[@]}"; do
-            echo "🧹 Clearing old env vars for $SERVICE..."
-            gcloud run services update "$SERVICE" \
-              --region="$REGION" \
-              --clear-env-vars || true
-          done
+            if [ "$SERVICE" = "frontend" ]; then
+              docker buildx build \
+                --platform linux/amd64 \
+                -t gcr.io/$PROJECT_ID/$SERVICE:latest \
+                --build-arg VITE_QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL \
+                --build-arg VITE_USER_SERVICE_URL=$USER_SERVICE_URL \
+                --build-arg VITE_MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL \
+                ./peerprep \
+                --push
 
-      - name: Deploy backend services (with secrets)
-        run: |
-          IFS=',' read -ra SRV <<< "$SERVICES"
-          for SERVICE in "${SRV[@]}"; do
-            if [[ "$SERVICE" != "frontend" ]]; then
-              echo "🚀 Deploying $SERVICE..."
               gcloud run deploy "$SERVICE" \
-                --image="gcr.io/$PROJECT_ID/$SERVICE:latest" \
-                --region="$REGION" \
-                --platform=managed \
+                --image=gcr.io/$PROJECT_ID/$SERVICE:latest \
+                --platform managed \
+                --region $REGION \
+                --allow-unauthenticated
+            else
+              docker buildx build \
+                --platform linux/amd64 \
+                -t gcr.io/$PROJECT_ID/$SERVICE:latest \
+                ./$SERVICE \
+                --push
+
+              ENV_VARS="MONGO_URI_MATCHING=$MONGO_URI_MATCHING,MONGO_URI_USER=$MONGO_URI_USER,REDIS_HOST=$REDIS_HOST,REDIS_PORT=$REDIS_PORT,JWT_SECRET=$JWT_SECRET,USER_SERVICE_URL=$USER_SERVICE_URL,QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL,MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL"
+
+              gcloud run deploy "$SERVICE" \
+                --image=gcr.io/$PROJECT_ID/$SERVICE:latest \
+                --platform managed \
+                --region $REGION \
                 --allow-unauthenticated \
-                --set-secrets="MONGO_URI_MATCHING=MONGO_URI_MATCHING:latest,MONGO_URI_USER=MONGO_URI_USER:latest,REDIS_HOST=REDIS_HOST:latest,REDIS_PORT=REDIS_PORT:latest,JWT_SECRET=JWT_SECRET:latest,USER_SERVICE_URL=USER_SERVICE_URL:latest,QUESTION_SERVICE_URL=QUESTION_SERVICE_URL:latest,MATCHING_SERVICE_URL=MATCHING_SERVICE_URL:latest"
+                --set-env-vars "$ENV_VARS"
             fi
           done
-
-      - name: Deploy frontend
-        run: |
-          echo "🌐 Deploying frontend..."
-          gcloud run deploy frontend \
-            --image="gcr.io/$PROJECT_ID/frontend:latest" \
-            --region="$REGION" \
-            --platform=managed \
-            --allow-unauthenticated \
-            --set-secrets="VITE_BACKEND_URL=VITE_BACKEND_URL:latest"
