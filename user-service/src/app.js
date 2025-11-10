@@ -18,8 +18,8 @@ const app = express();
 
 app.use(express.json());
 const allowedOrigins = [
-  'http://localhost:5173', // local Vite frontend
-  'https://peerprep-frontend-6619362751.asia-southeast1.run.app' // deployed frontend
+  'http://localhost:5173', 
+  process.env.FRONTEND_URL // dynamic URL from deployment
 ];
 
 app.use(cors({
