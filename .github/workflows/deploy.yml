@@ -56,18 +56,19 @@ jobs:
             echo "🚀 Building $SERVICE..."
 
             if [ "$SERVICE" = "peerprep" ]; then
-              # peerprep is the frontend
+              FRONTEND_SERVICE_NAME="peerprep-frontend"  # fixed name
+
               docker buildx build \
                 --platform linux/amd64 \
-                -t gcr.io/$PROJECT_ID/$SERVICE:latest \
+                -t gcr.io/$PROJECT_ID/$FRONTEND_SERVICE_NAME:latest \
                 --build-arg VITE_QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL \
                 --build-arg VITE_USER_SERVICE_URL=$USER_SERVICE_URL \
                 --build-arg VITE_MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL \
                 ./$SERVICE \
                 --push
 
-              gcloud run deploy "$SERVICE" \
-                --image=gcr.io/$PROJECT_ID/$SERVICE:latest \
+              gcloud run deploy "$FRONTEND_SERVICE_NAME" \
+                --image=gcr.io/$PROJECT_ID/$FRONTEND_SERVICE_NAME:latest \
                 --platform managed \
                 --region $REGION \
                 --allow-unauthenticated
