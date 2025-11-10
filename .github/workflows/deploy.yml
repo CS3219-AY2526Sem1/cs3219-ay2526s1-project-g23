@@ -15,8 +15,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # ensure full history
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -48,18 +46,20 @@ jobs:
           USER_SERVICE_URL: ${{ secrets.USER_SERVICE_URL }}
           QUESTION_SERVICE_URL: ${{ secrets.QUESTION_SERVICE_URL }}
           MATCHING_SERVICE_URL: ${{ secrets.MATCHING_SERVICE_URL }}
-          PROJECT_ID: ${{ env.PROJECT_ID }}
-          REGION: ${{ env.REGION }}
+          PROJECT_ID: fifth-honor-476010-u0
+          REGION: asia-southeast1
         run: |
+          # Timestamp tag to force fresh deploy
+          TAG=$(date +%s)
+
           SERVICES="peerprep,user-service,question-service,matching-service"
           IFS=',' read -ra SRV <<< "$SERVICES"
 
           for SERVICE in "${SRV[@]}"; do
             echo "🚀 Building $SERVICE..."
-            TAG=$(date +%s)
 
-            # Build frontend (peerprep) with Vite build args
             if [ "$SERVICE" = "peerprep" ]; then
+              # Frontend build with Vite args
               docker buildx build \
                 --platform linux/amd64 \
                 --no-cache \
