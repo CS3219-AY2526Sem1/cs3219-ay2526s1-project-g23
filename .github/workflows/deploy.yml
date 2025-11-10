@@ -90,4 +90,5 @@ jobs:
                 --set-secrets USER_SERVICE_URL=USER_SERVICE_URL:latest \
                 --set-secrets QUESTION_SERVICE_URL=QUESTION_SERVICE_URL:latest \
                 --set-secrets MATCHING_SERVICE_URL=MATCHING_SERVICE_URL:latest
+            fi
           done
