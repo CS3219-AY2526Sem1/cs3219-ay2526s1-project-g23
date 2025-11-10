@@ -13,6 +13,11 @@ const matchSessionSchema = new mongoose.Schema({
       difficulty: String,
       proficiency: String,
       language: String
+    },
+    status: {
+      type: String,
+      enum: ['active', 'completed'],
+      default: 'active'
     }
   }],
   
@@ -64,7 +69,7 @@ const matchSessionSchema = new mongoose.Schema({
   },
   startedAt: { 
     type: Date,
-    default: null
+    default: Date.now
   },
   endedAt: { 
     type: Date,
