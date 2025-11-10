@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # ensures full history
+          fetch-depth: 0  # ensure full history
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -56,12 +56,10 @@ jobs:
 
           for SERVICE in "${SRV[@]}"; do
             echo "🚀 Building $SERVICE..."
-
-            # generate unique tag for this build
             TAG=$(date +%s)
 
+            # Build frontend (peerprep) with Vite build args
             if [ "$SERVICE" = "peerprep" ]; then
-              # frontend build
               docker buildx build \
                 --platform linux/amd64 \
                 --no-cache \
@@ -69,7 +67,7 @@ jobs:
                 --build-arg VITE_QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL \
                 --build-arg VITE_USER_SERVICE_URL=$USER_SERVICE_URL \
                 --build-arg VITE_MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL \
-                ./$SERVICE \
+                ./peerprep \
                 --push
 
               gcloud run deploy "$SERVICE" \
@@ -78,7 +76,7 @@ jobs:
                 --region $REGION \
                 --allow-unauthenticated
             else
-              # backend services
+              # Backend services
               docker buildx build \
                 --platform linux/amd64 \
                 --no-cache \
