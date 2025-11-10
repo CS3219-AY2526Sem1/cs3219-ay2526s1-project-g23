@@ -13,58 +13,64 @@ jobs:
       REGION: asia-southeast1
 
     steps:
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # 2️⃣ Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
+      # 3️⃣ Setup Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      # 4️⃣ Authenticate to Google Cloud
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+      # 5️⃣ Configure Docker for GCR
       - name: Configure Docker for GCR
         run: gcloud auth configure-docker
 
+      # 6️⃣ Set GCP project
       - name: Set GCP project
         run: gcloud config set project $PROJECT_ID
 
-      # 1️⃣ Deploy Frontend and capture URL
+      # 7️⃣ Deploy Frontend (static backend URLs)
       - name: Build & Deploy Frontend
         run: |
           TAG=$(date +%s)
+          echo "🔖 Using tag: $TAG"
+
           docker buildx build \
             -f ./peerprep/dockerfile \
             --platform linux/amd64 \
             --no-cache \
             -t gcr.io/$PROJECT_ID/peerprep:$TAG \
-            --build-arg VITE_QUESTION_SERVICE_URL=${{ secrets.QUESTION_SERVICE_URL }} \
             --build-arg VITE_USER_SERVICE_URL=${{ secrets.USER_SERVICE_URL }} \
+            --build-arg VITE_QUESTION_SERVICE_URL=${{ secrets.QUESTION_SERVICE_URL }} \
             --build-arg VITE_MATCHING_SERVICE_URL=${{ secrets.MATCHING_SERVICE_URL }} \
             ./peerprep \
             --push
 
-          # Deploy and capture frontend URL
-          FRONTEND_URL=$(gcloud run deploy peerprep \
+          gcloud run deploy peerprep \
             --image=gcr.io/$PROJECT_ID/peerprep:$TAG \
             --platform managed \
             --region $REGION \
-            --allow-unauthenticated \
-            --format="value(status.url)")
+            --allow-unauthenticated
 
-          echo "✅ Frontend deployed at: $FRONTEND_URL"
-          echo "FRONTEND_URL=$FRONTEND_URL" >> $GITHUB_ENV
-
-      # 2️⃣ Deploy Backends and capture URLs
+      # 8️⃣ Deploy Backends (static frontend URL)
       - name: Build & Deploy Backends
         run: |
           TAG=$(date +%s)
+          FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+          echo "Frontend URL: $FRONTEND_URL"
+
           SERVICES="user-service,question-service,matching-service"
           IFS=',' read -ra SRV <<< "$SERVICES"
 
@@ -77,39 +83,11 @@ jobs:
               ./$SERVICE \
               --push
 
-            # Deploy backend and capture URL
-            SERVICE_URL=$(gcloud run deploy "$SERVICE" \
+            echo "☁️ Deploying $SERVICE..."
+            gcloud run deploy "$SERVICE" \
               --image=gcr.io/$PROJECT_ID/$SERVICE:$TAG \
               --platform managed \
               --region $REGION \
               --allow-unauthenticated \
-              --set-env-vars FRONTEND_URL=$FRONTEND_URL \
-              --format="value(status.url)")
-
-            echo "$SERVICE deployed at $SERVICE_URL"
-            # Export backend URL as env variable for other services if needed
-            echo "${SERVICE^^}_URL=$SERVICE_URL" >> $GITHUB_ENV
+              --set-env-vars FRONTEND_URL=$FRONTEND_URL
           done
-
-      # 3️⃣ Optional: Redeploy services that depend on backend URLs
-      - name: Redeploy services with backend URLs
-        run: |
-          TAG=$(date +%s)
-          docker buildx build \
-            -f ./peerprep/dockerfile \
-            --platform linux/amd64 \
-            --no-cache \
-            -t gcr.io/$PROJECT_ID/peerprep:$TAG \
-            --build-arg VITE_USER_SERVICE_URL=$USER_SERVICE_URL \
-            --build-arg VITE_QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL \
-            --build-arg VITE_MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL \
-            ./peerprep \
-            --push
-
-          gcloud run deploy peerprep \
-            --image=gcr.io/$PROJECT_ID/peerprep:$TAG \
-            --platform managed \
-            --region $REGION \
-            --allow-unauthenticated \
-            --set-env-vars USER_SERVICE_URL=$USER_SERVICE_URL,QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL,MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL
-
