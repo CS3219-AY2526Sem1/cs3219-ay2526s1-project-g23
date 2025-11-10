@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # ensures full history
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -46,8 +48,8 @@ jobs:
           USER_SERVICE_URL: ${{ secrets.USER_SERVICE_URL }}
           QUESTION_SERVICE_URL: ${{ secrets.QUESTION_SERVICE_URL }}
           MATCHING_SERVICE_URL: ${{ secrets.MATCHING_SERVICE_URL }}
-          PROJECT_ID: fifth-honor-476010-u0
-          REGION: asia-southeast1
+          PROJECT_ID: ${{ env.PROJECT_ID }}
+          REGION: ${{ env.REGION }}
         run: |
           SERVICES="peerprep,user-service,question-service,matching-service"
           IFS=',' read -ra SRV <<< "$SERVICES"
@@ -55,11 +57,15 @@ jobs:
           for SERVICE in "${SRV[@]}"; do
             echo "🚀 Building $SERVICE..."
 
+            # generate unique tag for this build
+            TAG=$(date +%s)
+
             if [ "$SERVICE" = "peerprep" ]; then
-              # peerprep is the frontend
+              # frontend build
               docker buildx build \
                 --platform linux/amd64 \
-                -t gcr.io/$PROJECT_ID/$SERVICE:latest \
+                --no-cache \
+                -t gcr.io/$PROJECT_ID/$SERVICE:$TAG \
                 --build-arg VITE_QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL \
                 --build-arg VITE_USER_SERVICE_URL=$USER_SERVICE_URL \
                 --build-arg VITE_MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL \
@@ -67,7 +73,7 @@ jobs:
                 --push
 
               gcloud run deploy "$SERVICE" \
-                --image=gcr.io/$PROJECT_ID/$SERVICE:latest \
+                --image=gcr.io/$PROJECT_ID/$SERVICE:$TAG \
                 --platform managed \
                 --region $REGION \
                 --allow-unauthenticated
@@ -75,14 +81,15 @@ jobs:
               # backend services
               docker buildx build \
                 --platform linux/amd64 \
-                -t gcr.io/$PROJECT_ID/$SERVICE:latest \
+                --no-cache \
+                -t gcr.io/$PROJECT_ID/$SERVICE:$TAG \
                 ./$SERVICE \
                 --push
 
               ENV_VARS="MONGO_URI_MATCHING=$MONGO_URI_MATCHING,MONGO_URI_QUESTION=$MONGO_URI_QUESTION,MONGO_URI_USER=$MONGO_URI_USER,REDIS_HOST=$REDIS_HOST,REDIS_PORT=$REDIS_PORT,JWT_SECRET=$JWT_SECRET,USER_SERVICE_URL=$USER_SERVICE_URL,QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL,MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL"
 
               gcloud run deploy "$SERVICE" \
-                --image=gcr.io/$PROJECT_ID/$SERVICE:latest \
+                --image=gcr.io/$PROJECT_ID/$SERVICE:$TAG \
                 --platform managed \
                 --region $REGION \
                 --allow-unauthenticated \
