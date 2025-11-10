@@ -36,7 +36,7 @@ app.use(cors({
 
 // Connect to MongoDB
 mongoose
-  .connect(process.env.DB_CLOUD_URI)
+  .connect(process.env.MONGO_URI_QUESTION)
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 

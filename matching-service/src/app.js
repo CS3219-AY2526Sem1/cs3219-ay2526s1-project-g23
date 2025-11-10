@@ -76,7 +76,7 @@ app.use((req, res) => {
 // Connect to MongoDB
 async function connectToDatabase() {
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/peerprep-matching';
+    const mongoUri = process.env.MONGO_URI_MATCHING || 'mongodb://localhost:27017/peerprep-matching';
     await mongoose.connect(mongoUri);
     console.log('Connected to MongoDB successfully');
 

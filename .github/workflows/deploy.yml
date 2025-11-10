@@ -38,6 +38,7 @@ jobs:
       - name: Build & Deploy Services
         env:
           MONGO_URI_MATCHING: ${{ secrets.MONGO_URI_MATCHING }}
+          MONGO_URI_QUESTION: ${{ secrets.MONGO_URI_QUESTION }}
           MONGO_URI_USER: ${{ secrets.MONGO_URI_USER }}
           REDIS_HOST: ${{ secrets.REDIS_HOST }}
           REDIS_PORT: ${{ secrets.REDIS_PORT }}
@@ -48,20 +49,21 @@ jobs:
           PROJECT_ID: fifth-honor-476010-u0
           REGION: asia-southeast1
         run: |
-          SERVICES="peerprep,user-service,question-service,matching-service,frontend"
+          SERVICES="peerprep,user-service,question-service,matching-service"
           IFS=',' read -ra SRV <<< "$SERVICES"
 
           for SERVICE in "${SRV[@]}"; do
             echo "🚀 Building $SERVICE..."
 
-            if [ "$SERVICE" = "frontend" ]; then
+            if [ "$SERVICE" = "peerprep" ]; then
+              # peerprep is the frontend
               docker buildx build \
                 --platform linux/amd64 \
                 -t gcr.io/$PROJECT_ID/$SERVICE:latest \
                 --build-arg VITE_QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL \
                 --build-arg VITE_USER_SERVICE_URL=$USER_SERVICE_URL \
                 --build-arg VITE_MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL \
-                ./peerprep \
+                ./$SERVICE \
                 --push
 
               gcloud run deploy "$SERVICE" \
@@ -70,13 +72,14 @@ jobs:
                 --region $REGION \
                 --allow-unauthenticated
             else
+              # backend services
               docker buildx build \
                 --platform linux/amd64 \
                 -t gcr.io/$PROJECT_ID/$SERVICE:latest \
                 ./$SERVICE \
                 --push
 
-              ENV_VARS="MONGO_URI_MATCHING=$MONGO_URI_MATCHING,MONGO_URI_USER=$MONGO_URI_USER,REDIS_HOST=$REDIS_HOST,REDIS_PORT=$REDIS_PORT,JWT_SECRET=$JWT_SECRET,USER_SERVICE_URL=$USER_SERVICE_URL,QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL,MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL"
+              ENV_VARS="MONGO_URI_MATCHING=$MONGO_URI_MATCHING,MONGO_URI_QUESTION=$MONGO_URI_QUESTION,MONGO_URI_USER=$MONGO_URI_USER,REDIS_HOST=$REDIS_HOST,REDIS_PORT=$REDIS_PORT,JWT_SECRET=$JWT_SECRET,USER_SERVICE_URL=$USER_SERVICE_URL,QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL,MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL"
 
               gcloud run deploy "$SERVICE" \
                 --image=gcr.io/$PROJECT_ID/$SERVICE:latest \
