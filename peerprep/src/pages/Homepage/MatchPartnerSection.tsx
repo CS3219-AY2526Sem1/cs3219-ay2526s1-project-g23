@@ -2,6 +2,7 @@ import {
   acceptMatchProposal,
   cancelMatchRequest,
   declineMatchProposal,
+  getMatchStatus,
   submitMatchRequest,
 } from "@/api/matching-service";
 import { Button } from "@/components/ui/button";
@@ -147,6 +148,16 @@ export default function MatchPartnerSection() {
 
   const onSubmit = async () => {
     try {
+      const response = await getMatchStatus();
+      if (response?.status != "none") {
+        toast.info(
+          response.status == "active"
+            ? "An active collaboration session exists"
+            : "Waiting for partner..."
+        );
+        return;
+      }
+
       await submitMatchRequest({
         topic: questionType,
         difficulty: difficulty,

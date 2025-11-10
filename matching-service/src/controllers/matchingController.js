@@ -474,8 +474,7 @@ class MatchingController {
       
       // Check for active session first
       const activeSession = await MatchSession.findOne({
-        'participants.userId': userId,
-        'participants.status': 'active'
+        participants: { $elemMatch: { userId: userId, status: 'active' } },
       });
       
       if (activeSession) {

@@ -1,3 +1,4 @@
+import { getMatchStatus } from "@/api/matching-service";
 import { verifyToken } from "@/api/user-service";
 import Spinner from "@/components/custom/spinner";
 import Footer from "@/components/ui/Footer";
@@ -25,6 +26,14 @@ const RouteGuard = () => {
     startTransition(async () => {
       try {
         await verifyToken();
+
+        if (!pathname.includes("/collaborate/")) {
+          const response = await getMatchStatus();
+          if (response?.status == "active") {
+            navigate(`/collaborate/${response.session._id}`);
+          }
+        }
+
         if (isPublicRoute) {
           navigate("/");
         }
@@ -34,7 +43,7 @@ const RouteGuard = () => {
         }
       }
     });
-  }, []);
+  }, [pathname]);
 
   if (loading) {
     return (
