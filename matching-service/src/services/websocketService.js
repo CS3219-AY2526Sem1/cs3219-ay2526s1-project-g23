@@ -34,7 +34,7 @@ class WebSocketService {
         
         const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3001';
         
-        const verifyResponse = await fetch(`${userServiceUrl}/api/auth/verify-token`, {
+        const verifyResponse = await fetch(`${userServiceUrl}/auth/verify-token`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

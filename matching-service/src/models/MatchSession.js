@@ -13,6 +13,11 @@ const matchSessionSchema = new mongoose.Schema({
       difficulty: String,
       proficiency: String,
       language: String
+    },
+    status: {
+      type: String,
+      enum: ['active', 'completed'],
+      default: 'active'
     }
   }],
   
@@ -40,8 +45,8 @@ const matchSessionSchema = new mongoose.Schema({
   
   status: { 
     type: String, 
-    default: 'created',
-    enum: ['created', 'active', 'completed', 'abandoned', 'expired']
+    default: 'active',
+    enum: ['active', 'completed']
   },
   
   // Question assigned for this session
@@ -64,7 +69,7 @@ const matchSessionSchema = new mongoose.Schema({
   },
   startedAt: { 
     type: Date,
-    default: null
+    default: Date.now
   },
   endedAt: { 
     type: Date,

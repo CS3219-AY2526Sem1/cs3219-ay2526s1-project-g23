@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react";
+import { getMatchStatus } from "@/api/matching-service";
+import { getUserStats } from "@/api/user-service";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Timer } from "lucide-react";
-import { getUserStats } from "@/api/user-service";
-import { difficultyLabels, topicLabels } from "./matchingConstants";
-import { getMatchStatus } from "@/api/matching-service";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { difficultyLabels, topicLabels } from "./matchingConstants";
 
 interface AcceptMatchModalProps {
   isOpen: boolean;
@@ -96,7 +96,10 @@ const AcceptMatchModal: React.FC<AcceptMatchModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent
+        className="max-w-md"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="text-2xl text-center">
             Match Found!

@@ -6,7 +6,7 @@ const attemptSchema = new mongoose.Schema({
     questionId: { type: mongoose.Schema.Types.ObjectId, ref: "Question", required: true },
     timeTakenSeconds: { type: Number, required: true },
     difficulty: { type: String, required: true },
-    solution: { type: String, required: true },
+    solution: { type: String },
     createdAt: { type: Date, default: Date.now },
 });
 

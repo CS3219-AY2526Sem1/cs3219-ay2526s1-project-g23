@@ -80,11 +80,20 @@ app.use((req, res) => {
 async function connectToDatabase() {
   try {
     const mongoUri = process.env.MONGO_URI_MATCHING || 'mongodb://localhost:27017/peerprep-matching';
-    await mongoose.connect(mongoUri);
-    console.log('Connected to MongoDB successfully');
-
-    mongoose.connection.on('error', err => console.error('MongoDB error:', err));
-    mongoose.connection.on('disconnected', () => console.log('MongoDB disconnected'));
+    
+    await mongoose.connect(mongoUri, {
+    });
+    
+    console.log(' Connected to MongoDB successfully');
+    
+    mongoose.connection.on('error', (err) => {
+      console.error(' MongoDB connection error:', err);
+    });
+    
+    mongoose.connection.on('disconnected', () => {
+      console.log(' MongoDB disconnected');
+    });
+    
   } catch (err) {
     console.error('Failed to connect to MongoDB:', err);
   }
