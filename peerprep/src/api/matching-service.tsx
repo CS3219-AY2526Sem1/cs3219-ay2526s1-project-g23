@@ -51,8 +51,8 @@ export const getMatchStatus = async () =>
 
 export const getMatchSession = async (id: string) => {
   return await request({
-    url: `${BASE_ROUTE}/session/${id}`,
-    port: MATCHING_PORT,
+    service: "matching",
+    endpoint: `${BASE_ROUTE}/session/${id}`,
     method: "get",
     includeToken: true,
   });

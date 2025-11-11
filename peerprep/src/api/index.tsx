@@ -4,6 +4,7 @@ const SERVICE_URLS: Record<string, string> = {
   question: import.meta.env.VITE_QUESTION_SERVICE_URL,
   user: import.meta.env.VITE_USER_SERVICE_URL,
   matching: import.meta.env.VITE_MATCHING_SERVICE_URL,
+  collaboration: import.meta.env.VITE_COLLABORATION_SERVICE_URL,
 };
 
 export const request = async ({

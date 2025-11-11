@@ -21,7 +21,8 @@ const allowedOrigins = [
   'https://peerprep-frontend-6619362751.asia-southeast1.run.app', // deployed frontend
   'https://user-service-6619362751.asia-southeast1.run.app',
   'https://matching-service-6619362751.asia-southeast1.run.app',
-  'https://question-service-6619362751.asia-southeast1.run.app'
+  'https://question-service-6619362751.asia-southeast1.run.app',
+  'https://collaboration-service-6619362751.asia-southeast1.run.app'
 ];
 
 app.use(cors({

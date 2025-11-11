@@ -46,10 +46,11 @@ jobs:
           USER_SERVICE_URL: ${{ secrets.USER_SERVICE_URL }}
           QUESTION_SERVICE_URL: ${{ secrets.QUESTION_SERVICE_URL }}
           MATCHING_SERVICE_URL: ${{ secrets.MATCHING_SERVICE_URL }}
+          COLLABORATION_SERVICE_URL: ${{ secrets.COLLABORATION_SERVICE_URL }}
           PROJECT_ID: fifth-honor-476010-u0
           REGION: asia-southeast1
         run: |
-          SERVICES="peerprep,user-service,question-service,matching-service"
+          SERVICES="peerprep,user-service,question-service,matching-service,collaboration-service"
           IFS=',' read -ra SRV <<< "$SERVICES"
 
           for SERVICE in "${SRV[@]}"; do
@@ -64,6 +65,7 @@ jobs:
                 --build-arg VITE_QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL \
                 --build-arg VITE_USER_SERVICE_URL=$USER_SERVICE_URL \
                 --build-arg VITE_MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL \
+                --build-arg VITE_COLLABORATION_SERVICE_URL=$MATCHING_SERVICE_URL \
                 ./$SERVICE \
                 --push
 
@@ -73,14 +75,14 @@ jobs:
                 --region $REGION \
                 --allow-unauthenticated
             else
-              # backend services
+              # backend services including collaboration-service
               docker buildx build \
                 --platform linux/amd64 \
                 -t gcr.io/$PROJECT_ID/$SERVICE:latest \
                 ./$SERVICE \
                 --push
 
-              ENV_VARS="MONGO_URI_MATCHING=$MONGO_URI_MATCHING,MONGO_URI_QUESTION=$MONGO_URI_QUESTION,MONGO_URI_USER=$MONGO_URI_USER,REDIS_HOST=$REDIS_HOST,REDIS_PORT=$REDIS_PORT,JWT_SECRET=$JWT_SECRET,USER_SERVICE_URL=$USER_SERVICE_URL,QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL,MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL"
+              ENV_VARS="MONGO_URI_MATCHING=$MONGO_URI_MATCHING,MONGO_URI_QUESTION=$MONGO_URI_QUESTION,MONGO_URI_USER=$MONGO_URI_USER,REDIS_HOST=$REDIS_HOST,REDIS_PORT=$REDIS_PORT,JWT_SECRET=$JWT_SECRET,USER_SERVICE_URL=$USER_SERVICE_URL,QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL,MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL,COLLABORATION_SERVICE_URL=$COLLABORATION_SERVICE_URL"
 
               gcloud run deploy "$SERVICE" \
                 --image=gcr.io/$PROJECT_ID/$SERVICE:latest \

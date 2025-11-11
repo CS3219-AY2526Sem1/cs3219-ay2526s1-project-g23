@@ -17,7 +17,30 @@ dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: "http://localhost:5173" }));
+
+const allowedOrigins = [
+  'http://localhost:5173', // local Vite frontend
+  'https://peerprep-frontend-6619362751.asia-southeast1.run.app', // deployed frontend
+  'https://user-service-6619362751.asia-southeast1.run.app',
+  'https://matching-service-6619362751.asia-southeast1.run.app',
+  'https://question-service-6619362751.asia-southeast1.run.app',
+  'https://collaboration-service-6619362751.asia-southeast1.run.app'
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS not allowed for this origin'));
+    }
+  },
+  credentials: true, // if you need cookies/auth headers
+}));
+
+app.use(express.json());
 
 app.use("/collaboration", collaborationRoutes);
 

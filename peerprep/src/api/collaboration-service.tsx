@@ -6,8 +6,8 @@ export const exitSession = async (
   solution: string
 ) => {
   return await request({
-    url: "/collaboration/exit",
-    port: 3004,
+    service: "collaboration",
+    endpoint: "/collaboration/exit",
     method: "post",
     data: { userId, sessionId, solution },
     includeToken: true,
