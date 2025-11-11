@@ -484,7 +484,7 @@ class MatchingController {
           session: activeSession,
           partnerId: partner ? partner.userId : null
         });
-      }
+      } 
       
       const activeProposal = await redisService.getUserActiveProposal(userId);
       
