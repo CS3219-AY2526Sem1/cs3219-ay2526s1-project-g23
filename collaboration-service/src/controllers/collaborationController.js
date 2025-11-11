@@ -11,8 +11,9 @@ const collaborationController = {
       };
 
       // Use environment variables for service URLs
-      const MATCHING_SERVICE_URL = process.env.VITE_MATCHING_SERVICE_URL || "http://localhost:3003";
-      const QUESTION_SERVICE_URL = process.env.VITE_QUESTION_SERVICE_URL || "http://localhost:3002";
+      const MATCHING_SERVICE_URL = process.env.MATCHING_SERVICE_URL;
+      const QUESTION_SERVICE_URL = process.env.QUESTION_SERVICE_URL;
+
 
       const getSessionResponse = await fetch(
         `${MATCHING_SERVICE_URL}/api/matching/session/${sessionId}`,
