@@ -1,0 +1,95 @@
+name: CI/CD to Cloud Run
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_ID: fifth-honor-476010-u0
+      REGION: asia-southeast1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker
+
+      - name: Set GCP project
+        run: gcloud config set project $PROJECT_ID
+
+      - name: Build & Deploy Services
+        env:
+          MONGO_URI_MATCHING: ${{ secrets.MONGO_URI_MATCHING }}
+          MONGO_URI_QUESTION: ${{ secrets.MONGO_URI_QUESTION }}
+          MONGO_URI_USER: ${{ secrets.MONGO_URI_USER }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          USER_SERVICE_URL: ${{ secrets.USER_SERVICE_URL }}
+          QUESTION_SERVICE_URL: ${{ secrets.QUESTION_SERVICE_URL }}
+          MATCHING_SERVICE_URL: ${{ secrets.MATCHING_SERVICE_URL }}
+          COLLABORATION_SERVICE_URL: ${{ secrets.COLLABORATION_SERVICE_URL }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          PROJECT_ID: fifth-honor-476010-u0
+          REGION: asia-southeast1
+        run: |
+          SERVICES="peerprep,user-service,question-service,matching-service,collaboration-service"
+          IFS=',' read -ra SRV <<< "$SERVICES"
+
+          for SERVICE in "${SRV[@]}"; do
+            echo "🚀 Building $SERVICE..."
+
+            if [ "$SERVICE" = "peerprep" ]; then
+              FRONTEND_SERVICE_NAME="peerprep-frontend"  # fixed name
+
+              docker buildx build \
+                --platform linux/amd64 \
+                -t gcr.io/$PROJECT_ID/$FRONTEND_SERVICE_NAME:latest \
+                --build-arg VITE_QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL \
+                --build-arg VITE_USER_SERVICE_URL=$USER_SERVICE_URL \
+                --build-arg VITE_MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL \
+                --build-arg VITE_COLLABORATION_SERVICE_URL=$COLLABORATION_SERVICE_URL \
+                ./$SERVICE \
+                --push
+
+              gcloud run deploy "$FRONTEND_SERVICE_NAME" \
+                --image=gcr.io/$PROJECT_ID/$FRONTEND_SERVICE_NAME:latest \
+                --platform managed \
+                --region $REGION \
+                --allow-unauthenticated
+            else
+              # backend services including collaboration-service
+              docker buildx build \
+                --platform linux/amd64 \
+                -t gcr.io/$PROJECT_ID/$SERVICE:latest \
+                ./$SERVICE \
+                --push
+
+              ENV_VARS="MONGO_URI_MATCHING=$MONGO_URI_MATCHING,MONGO_URI_QUESTION=$MONGO_URI_QUESTION,MONGO_URI_USER=$MONGO_URI_USER,REDIS_HOST=$REDIS_HOST,REDIS_PORT=$REDIS_PORT,JWT_SECRET=$JWT_SECRET,USER_SERVICE_URL=$USER_SERVICE_URL,QUESTION_SERVICE_URL=$QUESTION_SERVICE_URL,MATCHING_SERVICE_URL=$MATCHING_SERVICE_URL,COLLABORATION_SERVICE_URL=$COLLABORATION_SERVICE_URL,FRONTEND_URL=$FRONTEND_URL"
+
+              gcloud run deploy "$SERVICE" \
+                --image=gcr.io/$PROJECT_ID/$SERVICE:latest \
+                --platform managed \
+                --region $REGION \
+                --allow-unauthenticated \
+                --set-env-vars "$ENV_VARS"
+            fi
+          done

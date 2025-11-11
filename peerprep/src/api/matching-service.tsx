@@ -1,6 +1,5 @@
 import { request } from "./index";
 
-const MATCHING_PORT = 3003;
 const BASE_ROUTE = "/api/matching";
 
 export const submitMatchRequest = async (params: {
@@ -10,8 +9,8 @@ export const submitMatchRequest = async (params: {
   language?: string;
 }) => {
   return await request({
-    url: `${BASE_ROUTE}/request`,
-    port: MATCHING_PORT,
+    service: "matching",
+    endpoint: `${BASE_ROUTE}/request`,
     method: "post",
     data: params,
     includeToken: true,
@@ -20,40 +19,40 @@ export const submitMatchRequest = async (params: {
 
 export const cancelMatchRequest = async () =>
   await request({
-    url: `${BASE_ROUTE}/cancel`,
-    port: MATCHING_PORT,
+    service: "matching",
+    endpoint: `${BASE_ROUTE}/cancel`,
     method: "delete",
     includeToken: true,
   });
 
 export const acceptMatchProposal = async (proposalId: string) =>
   await request({
-    url: `${BASE_ROUTE}/proposal/${proposalId}/accept`,
-    port: MATCHING_PORT,
+    service: "matching",
+    endpoint: `${BASE_ROUTE}/proposal/${proposalId}/accept`,
     method: "post",
     includeToken: true,
   });
 
 export const declineMatchProposal = async (proposalId: string) =>
   await request({
-    url: `${BASE_ROUTE}/proposal/${proposalId}/decline`,
-    port: MATCHING_PORT,
+    service: "matching",
+    endpoint: `${BASE_ROUTE}/proposal/${proposalId}/decline`,
     method: "post",
     includeToken: true,
   });
 
 export const getMatchStatus = async () =>
   await request({
-    url: `${BASE_ROUTE}/status`,
-    port: MATCHING_PORT,
+    service: "matching",
+    endpoint: `${BASE_ROUTE}/status`,
     method: "get",
     includeToken: true,
   });
 
 export const getMatchSession = async (id: string) => {
   return await request({
-    url: `${BASE_ROUTE}/session/${id}`,
-    port: MATCHING_PORT,
+    service: "matching",
+    endpoint: `${BASE_ROUTE}/session/${id}`,
     method: "get",
     includeToken: true,
   });
@@ -61,7 +60,7 @@ export const getMatchSession = async (id: string) => {
 
 export const getQueueStats = async () =>
   await request({
-    url: `${BASE_ROUTE}/stats`,
-    port: MATCHING_PORT,
+    service: "matching",
+    endpoint: `${BASE_ROUTE}/stats`,
     method: "get",
   });

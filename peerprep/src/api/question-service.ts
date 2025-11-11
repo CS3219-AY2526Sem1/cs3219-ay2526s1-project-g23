@@ -1,7 +1,5 @@
 import { request } from "./index";
 
-const QUESTION_SERVICE_PORT = 3002;
-
 /**
  * Get all questions (with optional filters)
  */
@@ -13,8 +11,8 @@ export const getQuestions = async (params?: {
   search?: string;
 }) => {
   return await request({
-    url: "/questions",
-    port: QUESTION_SERVICE_PORT,
+    service: "question",
+    endpoint: "/questions",
     method: "get",
     data: params,
   });
@@ -25,8 +23,8 @@ export const getQuestions = async (params?: {
  */
 export const getQuestionById = async (id: string) => {
   return await request({
-    url: `/questions/${id}`,
-    port: QUESTION_SERVICE_PORT,
+    service: "question",
+    endpoint: `/questions/${id}`,
     method: "get",
   });
 };
@@ -36,8 +34,8 @@ export const getQuestionById = async (id: string) => {
  */
 export const createQuestion = async (data: any) => {
   return await request({
-    url: "/questions/create",
-    port: QUESTION_SERVICE_PORT,
+    service: "question",
+    endpoint: "/questions/create",
     method: "post",
     data,
     includeToken: true,
@@ -49,8 +47,8 @@ export const createQuestion = async (data: any) => {
  */
 export const activateQuestionById = async (id: string) => {
   return await request({
-    url: `/questions/${id}/activate`,
-    port: QUESTION_SERVICE_PORT,
+    service: "question",
+    endpoint: `/questions/${id}/activate`,
     method: "patch",
     includeToken: true,
   });
@@ -61,8 +59,8 @@ export const activateQuestionById = async (id: string) => {
  */
 export const deactivateQuestionById = async (id: string) => {
   return await request({
-    url: `/questions/${id}/deactivate`,
-    port: QUESTION_SERVICE_PORT,
+    service: "question",
+    endpoint: `/questions/${id}/deactivate`,
     method: "patch",
     includeToken: true,
   });
@@ -73,8 +71,8 @@ export const deactivateQuestionById = async (id: string) => {
  */
 export const editQuestionById = async (id: string, data: any) => {
   return await request({
-    url: `/questions/${id}/update`,
-    port: QUESTION_SERVICE_PORT,
+    service: "question",
+    endpoint: `/questions/${id}/update`,
     method: "put",
     includeToken: true,
     data,
@@ -86,8 +84,8 @@ export const editQuestionById = async (id: string, data: any) => {
  */
 export const deleteQuestionById = async (id: string) => {
   return await request({
-    url: `/questions/${id}/delete`,
-    port: QUESTION_SERVICE_PORT,
+    service: "question",
+    endpoint: `/questions/${id}/delete`,
     method: "delete",
     includeToken: true,
   });
@@ -98,8 +96,8 @@ export const deleteQuestionById = async (id: string) => {
  */
 export const getPopularQuestions = async (limit = 10) => {
   return await request({
-    url: "/questions/popular",
-    port: QUESTION_SERVICE_PORT,
+    service: "question",
+    endpoint: "/questions/popular",
     method: "get",
     data: { limit },
   });
@@ -110,11 +108,10 @@ export const getPopularQuestions = async (limit = 10) => {
  */
 export const getUserAttempts = async () => {
   const userId = localStorage.getItem("userId");
-  const reponse = await request({
-    url: `/attempts`,
-    port: QUESTION_SERVICE_PORT,
+  return await request({
+    service: "question",
+    endpoint: `/attempts`,
     method: "get",
     data: { userId },
   });
-  return reponse;``
 };

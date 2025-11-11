@@ -1,5 +1,6 @@
 import Attempt from '../models/Attempt.js';
 import Question from '../models/Question.js';
+import mongoose from 'mongoose';
 
 const attemptController = {
   recordAttempt: async (req, res) => {
@@ -39,8 +40,10 @@ const attemptController = {
 
       // Update user stats
       try {
+        const USER_SERVICE_URL = process.env.USER_SERVICE_URL;
+
         const response = await fetch(
-          `http://localhost:3001/users/${userId}/update-stats`,
+          `${USER_SERVICE_URL}/users/${userId}/update-stats`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -67,13 +70,12 @@ const attemptController = {
 
   getAttempts: async (req, res) => {
     try {
-      const { userId } = req.params;
+      const { userId } = req.query;
 
       const query = {};
       if (userId) {
-        query.userId = userId;
+        query.userId = new mongoose.Types.ObjectId(userId);
       }
-
       const populatedAttempts = await Attempt.find(query)
         .sort({ createdAt: -1 })
         .populate("questionId", "title topics");

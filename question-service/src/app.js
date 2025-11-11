@@ -16,11 +16,31 @@ dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: "http://localhost:5173" }));
+const allowedOrigins = [
+  'http://localhost:5173', // local Vite frontend
+  'https://peerprep-frontend-6619362751.asia-southeast1.run.app', // deployed frontend
+  'https://user-service-6619362751.asia-southeast1.run.app',
+  'https://matching-service-6619362751.asia-southeast1.run.app',
+  'https://question-service-6619362751.asia-southeast1.run.app',
+  'https://collaboration-service-6619362751.asia-southeast1.run.app'
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = `The CORS policy for this site does not allow access from the specified Origin.`;
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true // if sending cookies or auth headers
+}));
 
 // Connect to MongoDB
 mongoose
-  .connect(process.env.DB_CLOUD_URI)
+  .connect(process.env.MONGO_URI_QUESTION)
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 

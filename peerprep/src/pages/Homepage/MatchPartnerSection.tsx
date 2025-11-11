@@ -100,7 +100,17 @@ export default function MatchPartnerSection() {
   }, [isModalOpen, secondsLeft, retryCount, showTimeoutModal]);
 
   useEffect(() => {
-    const socket = io("ws://localhost:3003", {
+    // Get backend URL from Vite env, fallback to localhost
+    let BACKEND_URL =
+      import.meta.env.VITE_MATCHING_SERVICE_URL || "http://localhost:3003";
+
+    // If the URL starts with https://, convert to wss:// for Socket.IO
+    if (BACKEND_URL.startsWith("https://")) {
+      BACKEND_URL = BACKEND_URL.replace("https://", "wss://");
+    }
+
+    // Initialize Socket.IO
+    const socket = io(BACKEND_URL, {
       auth: { token: localStorage.getItem("jwtToken") },
     });
 

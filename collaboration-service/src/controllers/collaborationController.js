@@ -10,8 +10,12 @@ const collaborationController = {
         "Content-Type": "application/json",
       };
 
+      // Use environment variables for service URLs
+      const MATCHING_SERVICE_URL = process.env.MATCHING_SERVICE_URL || "http://localhost:3003";
+      const QUESTION_SERVICE_URL = process.env.QUESTION_SERVICE_URL || "http://localhost:3002";
+
       const getSessionResponse = await fetch(
-        `http://localhost:3003/api/matching/session/${sessionId}`,
+        `${MATCHING_SERVICE_URL}/api/matching/session/${sessionId}`,
         {
           method: "GET",
           headers: baseReqHeaders,
@@ -30,7 +34,7 @@ const collaborationController = {
       const difficulty = session.sessionCriteria.difficulty;
 
       const updateOwnSessionResponse = await fetch(
-        `http://localhost:3003/api/matching/sessions/${sessionId}/participant-status`,
+        `${MATCHING_SERVICE_URL}/api/matching/sessions/${sessionId}/participant-status`,
         {
           method: "PATCH",
           headers: baseReqHeaders,
@@ -46,7 +50,7 @@ const collaborationController = {
 
       if (partner.status == "completed") {
         const updateSessionResponse = await fetch(
-          `http://localhost:3003/api/matching/sessions/${sessionId}/session-status`,
+          `${MATCHING_SERVICE_URL}/api/matching/sessions/${sessionId}/session-status`,
           {
             method: "PATCH",
             headers: baseReqHeaders,
@@ -62,7 +66,7 @@ const collaborationController = {
       }
 
       const saveAttemptResponse = await fetch(
-        "http://localhost:3002/attempts",
+        `${QUESTION_SERVICE_URL}/attempts`,
         {
           method: "POST",
           headers: baseReqHeaders,
