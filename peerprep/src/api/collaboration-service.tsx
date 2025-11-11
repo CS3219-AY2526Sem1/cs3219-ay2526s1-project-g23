@@ -5,6 +5,7 @@ export const exitSession = async (
   sessionId: string,
   solution: string
 ) => {
+  console.log("Collaboration service URL:", import.meta.env.VITE_COLLABORATION_SERVICE_URL);
   return await request({
     service: "collaboration",
     endpoint: "/collaboration/exit",
