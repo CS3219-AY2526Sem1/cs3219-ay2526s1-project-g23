@@ -1,5 +1,6 @@
 import Attempt from '../models/Attempt.js';
 import Question from '../models/Question.js';
+import mongoose from 'mongoose';
 
 const attemptController = {
   recordAttempt: async (req, res) => {
@@ -67,13 +68,12 @@ const attemptController = {
 
   getAttempts: async (req, res) => {
     try {
-      const { userId } = req.params;
+      const { userId } = req.query;
 
       const query = {};
       if (userId) {
-        query.userId = userId;
+        query.userId = new mongoose.Types.ObjectId(userId);
       }
-
       const populatedAttempts = await Attempt.find(query)
         .sort({ createdAt: -1 })
         .populate("questionId", "title topics");
