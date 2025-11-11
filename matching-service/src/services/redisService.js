@@ -43,13 +43,14 @@ class RedisService {
     return `matching:notifications:${userId}`;
   }
   
-  async addToQueue(userId, topic, proficiency, difficulty, language = 'python') {
+  async addToQueue(userId, username, topic, proficiency, difficulty, language = 'python') {
     const queueKey = this.getQueueKey(topic);
     const activeKey = this.getActiveRequestKey(userId);
     const timestamp = Date.now();
     
     const requestData = {
       userId,
+      username,
       topic,
       proficiency,
       difficulty,
@@ -204,14 +205,14 @@ class RedisService {
     return `matching:user_proposal:${userId}`;
   }
   
-  async createMatchProposal(user1Id, user2Id, criteria1, criteria2, sessionCriteria) {
-    const proposalId = `${user1Id}_${user2Id}_${Date.now()}`;
+  async createMatchProposal(user1, user2, criteria1, criteria2, sessionCriteria) {
+    const proposalId = `${user1.id}_${user2.id}_${Date.now()}`;
     const proposalKey = this.getMatchProposalKey(proposalId);
     
     const proposal = {
       proposalId,
-      user1Id,
-      user2Id,
+      user1: JSON.stringify(user1),
+      user2: JSON.stringify(user2),
       criteria1: JSON.stringify(criteria1),
       criteria2: JSON.stringify(criteria2),
       sessionCriteria: JSON.stringify(sessionCriteria),
@@ -224,8 +225,8 @@ class RedisService {
     await this.redis.hset(proposalKey, proposal);
     await this.redis.expire(proposalKey, 60);
     
-    await this.redis.setex(this.getUserProposalKey(user1Id), 60, proposalId);
-    await this.redis.setex(this.getUserProposalKey(user2Id), 60, proposalId);
+    await this.redis.setex(this.getUserProposalKey(user1.id), 60, proposalId);
+    await this.redis.setex(this.getUserProposalKey(user2.id), 60, proposalId);
     
     return proposalId;
   }
@@ -241,6 +242,8 @@ class RedisService {
     
     return {
       ...proposal,
+      user1: JSON.parse(proposal.user1),
+      user2: JSON.parse(proposal.user2),
       criteria1: JSON.parse(proposal.criteria1),
       criteria2: JSON.parse(proposal.criteria2),
       sessionCriteria: JSON.parse(proposal.sessionCriteria),
@@ -271,10 +274,10 @@ class RedisService {
     }
     
     // Mark user as accepted
-    if (userId === proposal.user1Id) {
+    if (userId === proposal.user1.id) {
       await this.redis.hset(proposalKey, 'user1Accepted', 'true');
       proposal.user1Accepted = true;
-    } else if (userId === proposal.user2Id) {
+    } else if (userId === proposal.user2.id) {
       await this.redis.hset(proposalKey, 'user2Accepted', 'true');
       proposal.user2Accepted = true;
     } else {

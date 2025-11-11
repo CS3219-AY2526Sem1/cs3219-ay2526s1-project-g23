@@ -1,43 +1,44 @@
-import { useState, useEffect, useRef } from "react";
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
+  acceptMatchProposal,
+  cancelMatchRequest,
+  declineMatchProposal,
+  getMatchStatus,
+  submitMatchRequest,
+} from "@/api/matching-service";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { Timer } from "lucide-react";
 import {
   Form,
+  FormControl,
   FormField,
   FormItem,
-  FormControl,
   FormMessage,
 } from "@/components/ui/form";
-import { useForm, Controller } from "react-hook-form";
 import {
-  submitMatchRequest,
-  cancelMatchRequest,
-  getMatchStatus,
-  acceptMatchProposal,
-  declineMatchProposal,
-} from "@/api/matching-service";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Timer } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { useNavigate } from "react-router";
+import { io } from "socket.io-client";
+import { toast } from "sonner";
 import AcceptMatchModal from "./AcceptMatchModal";
 import {
-  topicLabels,
   difficultyLabels,
-  proficiencyLabels,
   MAX_RETRIES,
-  POLL_INTERVAL_MS,
+  proficiencyLabels,
+  topicLabels,
 } from "./matchingConstants";
 
 type FormValues = {
@@ -47,6 +48,8 @@ type FormValues = {
 };
 
 export default function MatchPartnerSection() {
+  const navigate = useNavigate();
+
   const form = useForm<FormValues>({
     defaultValues: {
       questionType: "",
@@ -71,8 +74,6 @@ export default function MatchPartnerSection() {
     partnerId: string;
     sessionCriteria: any;
   } | null>(null);
-
-  const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setRetryCount(0);
@@ -99,38 +100,33 @@ export default function MatchPartnerSection() {
   }, [isModalOpen, secondsLeft, retryCount, showTimeoutModal]);
 
   useEffect(() => {
-    if (!isModalOpen) return;
+    const socket = io("ws://localhost:3003", {
+      auth: { token: localStorage.getItem("jwtToken") },
+    });
 
-    const pollStatus = async () => {
-      try {
-        const res = await getMatchStatus();
-        console.log("Match status:", res);
-        if (res?.status === "proposal_pending") {
-          // Stop polling
-          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    socket.on("notification", async (event) => {
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Blocking delay to ease state changes
 
-          // Save proposal info and show accept/decline modal
-          setActiveProposal({
-            proposalId: res.proposalId,
-            partnerId: res.partnerId,
-            sessionCriteria: res.sessionCriteria,
-          });
-          setIsAcceptModalOpen(true); // New modal for accept/decline
-          setIsModalOpen(false); // Close the "searching" modal
-        }
-      } catch (err) {
-        console.error("Failed to get match status", err);
+      if (event.type == "match_proposal") {
+        // Save proposal info and show accept/decline modal
+        setActiveProposal({
+          proposalId: event.proposalId,
+          partnerId: event.partnerId,
+          sessionCriteria: event.sessionCriteria,
+        });
+        setIsAcceptModalOpen(true); // New modal for accept/decline
+        setIsModalOpen(false); // Close the "searching" modal
       }
-    };
 
-    // Start polling
-    pollTimerRef.current = setInterval(pollStatus, POLL_INTERVAL_MS);
+      if (event.type == "match_confirmed") {
+        navigate(`/collaborate/${event.sessionId}`);
+      }
+    });
 
-    // Cleanup when modal closes
     return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+      socket.disconnect();
     };
-  }, [isModalOpen]);
+  }, []);
 
   const handleRetry = async () => {
     try {
@@ -152,6 +148,16 @@ export default function MatchPartnerSection() {
 
   const onSubmit = async () => {
     try {
+      const response = await getMatchStatus();
+      if (response?.status != "none") {
+        toast.info(
+          response.status == "active"
+            ? "An active collaboration session exists"
+            : "Waiting for partner..."
+        );
+        return;
+      }
+
       await submitMatchRequest({
         topic: questionType,
         difficulty: difficulty,
@@ -379,8 +385,19 @@ export default function MatchPartnerSection() {
         </CardContent>
       </Card>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-md text-center">
+      <Dialog
+        open={isModalOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleCancel();
+          }
+          setIsModalOpen(open);
+        }}
+      >
+        <DialogContent
+          className="max-w-md text-center"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="text-2xl text-center">
               Finding Partner...

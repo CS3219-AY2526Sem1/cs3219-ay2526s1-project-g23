@@ -14,8 +14,9 @@ const diffMapReverse: Record<number, string> = Object.fromEntries(
 );
 
 function formatAvgTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
+  const rounded = Math.ceil(seconds);
+  const mins = Math.floor(rounded / 60);
+  const secs = rounded % 60;
   return `${mins}m ${secs}s`;
 }
 

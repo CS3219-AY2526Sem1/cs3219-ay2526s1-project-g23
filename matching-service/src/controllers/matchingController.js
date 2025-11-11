@@ -1,4 +1,3 @@
-import MatchRequest from '../models/MatchRequest.js';
 import MatchSession from '../models/MatchSession.js';
 import redisService from '../services/redisService.js';
 
@@ -11,6 +10,8 @@ class MatchingController {
     this.declineMatchProposal = this.declineMatchProposal.bind(this);
     this.getMatchStatus = this.getMatchStatus.bind(this);
     this.getQueueStats = this.getQueueStats.bind(this);
+    this.updateParticipantStatus = this.updateParticipantStatus.bind(this);
+    this.updateSessionStatus = this.updateSessionStatus.bind(this);
   }
   
   static PROFICIENCY_LEVELS = {
@@ -28,7 +29,7 @@ class MatchingController {
   // Submit a match request
   async submitMatchRequest(req, res) {
     try {
-      const { userId } = req.user; 
+      const { userId, username } = req.user; 
       const { topic, difficulty, proficiency, language = 'python' } = req.body;
       
       if (!topic || !difficulty || !proficiency) {
@@ -37,19 +38,26 @@ class MatchingController {
           message: 'Topic, difficulty, and proficiency are required'
         });
       }
+
+      // Check if user has active matchSession first
+      const activeMatchSession = await MatchSession.findOne({ 
+        'participants.userId': userId, 
+        'participants.status': 'active',
+      });
+
       
       const existingRequest = await redisService.hasActiveRequest(userId);
       
-      if (existingRequest) {
+      if (existingRequest || activeMatchSession) {
         return res.status(409).json({
           error: 'Active request exists',
-          message: 'You already have an active match request'
+          message: 'You already have an active match request/session'
         });
       }
       
-      const queueData = await redisService.addToQueue(userId, topic, proficiency, difficulty, language);
+      const queueData = await redisService.addToQueue(userId, username, topic, proficiency, difficulty, language);
       
-      const match = await this.findMatch(userId, { topic, difficulty, proficiency, language });
+      const match = await this.findMatch(userId, username, { topic, difficulty, proficiency, language });
       
       if (match) {
         return res.status(200).json({
@@ -74,7 +82,7 @@ class MatchingController {
     }
   }
   
-  async findMatch(userId, criteria) {
+  async findMatch(userId, username, criteria) {
     try {
       const { topic, difficulty, proficiency, language } = criteria;
       
@@ -105,14 +113,14 @@ class MatchingController {
       });
       
       const proposalId = await redisService.createMatchProposal(
-        userId, 
-        partner.userId, 
+        { id: userId, username },
+        { id: partner.userId, username: partner.username },
         criteria,
         {
           topic: partner.topic,
           difficulty: partner.difficulty,
           proficiency: partner.proficiency,
-          language: partner.language
+          language: partner.language,
         },
         sessionCriteria
       );
@@ -157,22 +165,24 @@ class MatchingController {
   }
   
   // Create a match session between two users
-  async createMatchSession(userId1, userId2, criteria1, criteria2) {
+  async createMatchSession(user1, user2, criteria1, criteria2) {
     try {
       const sessionCriteria = this.resolveSessionCriteria(criteria1, criteria2);
       
       // Fetch a question for the session
-      const questionId = await this.getQuestionId(sessionCriteria, userId1, userId2);
+      const questionId = await this.getQuestionId(sessionCriteria, user1.id, user2.id);
       const participants = [
         {
-          userId: userId1,
-          username: `user_${userId1}`, 
-          originalCriteria: criteria1
+          userId: user1.id,
+          username: user1.username, 
+          originalCriteria: criteria1,
+          status: 'active'
         },
         {
-          userId: userId2,
-          username: `user_${userId2}`, 
-          originalCriteria: criteria2
+          userId: user2.id,
+          username: user2.username, 
+          originalCriteria: criteria2,
+          status: 'active'
         }
       ];
       
@@ -304,14 +314,14 @@ class MatchingController {
       if (activeProposal) {
         await redisService.declineMatchProposal(userId, activeProposal.proposalId);
         
-        const partnerId = userId === activeProposal.user1Id ? activeProposal.user2Id : activeProposal.user1Id;
+        const partner = userId === activeProposal.user1.id ? activeProposal.user2 : activeProposal.user1;
         
-        await redisService.notifyUser(partnerId, {
+        await redisService.notifyUser(partner.id, {
           type: 'match_cancelled',
           message: 'Your match partner cancelled the request. You will be returned to the queue.'
         });
         
-        const partnerCriteria = userId === activeProposal.user1Id ? activeProposal.criteria2 : activeProposal.criteria1;
+        const partnerCriteria = userId === activeProposal.user1.id ? activeProposal.criteria2 : activeProposal.criteria1;
         await redisService.addToQueue(
           partnerId,
           partnerCriteria.topic,
@@ -320,7 +330,7 @@ class MatchingController {
           partnerCriteria.language
         );
         
-        await redisService.cleanupMatchProposal(activeProposal.proposalId, activeProposal.user1Id, activeProposal.user2Id);
+        await redisService.cleanupMatchProposal(activeProposal.proposalId, activeProposal.user1.id, activeProposal.user2.id);
         
         return res.status(200).json({
           message: 'Match proposal cancelled successfully'
@@ -374,42 +384,22 @@ class MatchingController {
         
         // Create match session
         const session = await this.createMatchSession(
-          proposal.user1Id, 
-          proposal.user2Id, 
+          proposal.user1, 
+          proposal.user2, 
           proposal.criteria1, 
           proposal.criteria2
         );
         
-        // Create match request records in MongoDB
-        await MatchRequest.create([
-          {
-            userId: proposal.user1Id,
-            criteria: proposal.criteria1,
-            status: 'matched',
-            matchedWith: proposal.user2Id,
-            sessionId: session._id,
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
-          },
-          {
-            userId: proposal.user2Id,
-            criteria: proposal.criteria2,
-            status: 'matched',
-            matchedWith: proposal.user1Id,
-            sessionId: session._id,
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
-          }
-        ]);
-        
         // Notify both users of confirmed match
-        await this.notifyUsers(proposal.user1Id, proposal.user2Id, session);
+        await this.notifyUsers(proposal.user1.id, proposal.user2.id, session);
         
         // Clean up proposal
-        await redisService.cleanupMatchProposal(proposalId, proposal.user1Id, proposal.user2Id);
+        await redisService.cleanupMatchProposal(proposalId, proposal.user1.id, proposal.user2.id);
         
         return res.status(200).json({
           message: 'Match confirmed! Both users accepted.',
           session: session,
-          partnerId: userId === proposal.user1Id ? proposal.user2Id : proposal.user1Id
+          partnerId: userId === proposal.user1.id ? proposal.user2.id : proposal.user1.id
         });
       }
       
@@ -442,17 +432,17 @@ class MatchingController {
       }
       
       const proposal = result.proposal;
-      const partnerId = userId === proposal.user1Id ? proposal.user2Id : proposal.user1Id;
+      const partner = userId === proposal.user1.id ? proposal.user2 : proposal.user1;
       
       // Notify partner that match was declined
-      await redisService.notifyUser(partnerId, {
+      await redisService.notifyUser(partner.id, {
         type: 'match_declined',
         message: 'Your match partner declined the match. You will be returned to the queue.',
         declinedBy: userId
       });
       
       // Add partner back to queue
-      const partnerCriteria = userId === proposal.user1Id ? proposal.criteria2 : proposal.criteria1;
+      const partnerCriteria = userId === proposal.user1.id ? proposal.criteria2 : proposal.criteria1;
       await redisService.addToQueue(
         partnerId,
         partnerCriteria.topic,
@@ -462,7 +452,7 @@ class MatchingController {
       );
       
       // Clean up proposal
-      await redisService.cleanupMatchProposal(proposalId, proposal.user1Id, proposal.user2Id);
+      await redisService.cleanupMatchProposal(proposalId, proposal.user1.id, proposal.user2.id);
       
       res.status(200).json({
         message: 'Match proposal declined. Partner has been notified.'
@@ -482,25 +472,26 @@ class MatchingController {
     try {
       const { userId } = req.user;
       
-      const completedMatch = await MatchRequest.findOne({ 
-        userId, 
-        status: 'matched' 
-      }).populate('sessionId');
+      // Check for active session first
+      const activeSession = await MatchSession.findOne({
+        participants: { $elemMatch: { userId: userId, status: 'active' } },
+      });
       
-      if (completedMatch) {
+      if (activeSession) {
+        const partner = activeSession.participants.find(p => p.userId.toString() !== userId);
         return res.status(200).json({
-          status: 'matched',
-          session: completedMatch.sessionId,
-          partnerId: completedMatch.matchedWith
+          status: 'active',
+          session: activeSession,
+          partnerId: partner ? partner.userId : null
         });
       }
       
       const activeProposal = await redisService.getUserActiveProposal(userId);
       
       if (activeProposal) {
-        const partnerId = userId === activeProposal.user1Id ? activeProposal.user2Id : activeProposal.user1Id;
-        const userAccepted = userId === activeProposal.user1Id ? activeProposal.user1Accepted : activeProposal.user2Accepted;
-        const partnerAccepted = userId === activeProposal.user1Id ? activeProposal.user2Accepted : activeProposal.user1Accepted;
+        const partnerId = userId === activeProposal.user1.id ? activeProposal.user2.id : activeProposal.user1.id;
+        const userAccepted = userId === activeProposal.user1.id ? activeProposal.user1Accepted : activeProposal.user2Accepted;
+        const partnerAccepted = userId === activeProposal.user1.id ? activeProposal.user2Accepted : activeProposal.user1Accepted;
         
         return res.status(200).json({
           status: 'proposal_pending',
@@ -562,6 +553,30 @@ class MatchingController {
       res.status(500).json({
         error: 'Failed to get match status',
         message: err.message
+      });
+    }
+  }
+  
+  async getMatchSession(req, res) {
+    try {
+      const { userId } = req.user;
+      const { sessionId } = req.params;
+
+      const session = await MatchSession.findById(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+
+      if (!session.participants.find(({ userId: id }) => id.toString() == userId)) {
+        return res.status(500).json({ error: 'Failed to get match session' });
+      }
+
+      res.status(200).json(session);
+    } catch (err) {
+      console.error('Get match session error:', err);
+      res.status(500).json({
+        error: 'Failed to get match session',
+        message: err.message,
       });
     }
   }
@@ -654,7 +669,7 @@ class MatchingController {
     try {
       const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3001';
 
-      const response = await fetch(`${userServiceUrl}/api/users/${userId}/attempted-questionIds`, {
+      const response = await fetch(`${userServiceUrl}/users/${userId}/attempted-questionIds`, {
         headers: {
           'Content-Type': 'application/json',
         }
@@ -671,6 +686,122 @@ class MatchingController {
     } catch (err) {
       console.error(`Error fetching attempts history for user ${userId}:`, err);
       return [];
+    }
+  }
+  // Update participant status in match session
+  async updateParticipantStatus(req, res) {
+    try {
+      const { userId } = req.user;
+      const { sessionId } = req.params;
+      const { status } = req.body;
+
+      if (!status || !['active', 'completed'].includes(status)) {
+        return res.status(400).json({
+          error: 'Invalid status',
+          message: 'Status must be either "active" or "completed"'
+        });
+      }
+
+      // Find the match session
+      const session = await MatchSession.findById(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({
+          error: 'Session not found',
+          message: 'Match session not found'
+        });
+      }
+
+      // Check if user is a participant in this session
+      const participant = session.participants.find(p => p.userId.toString() === userId);
+      
+      if (!participant) {
+        return res.status(403).json({
+          error: 'Not authorized',
+          message: 'You are not a participant in this session'
+        });
+      }
+
+      // Update participant status
+      participant.status = status;
+
+      // Save the session
+      await session.save();
+
+      res.status(200).json({
+        message: `Participant status updated to ${status}`,
+        session: session,
+        participant: participant
+      });
+
+    } catch (err) {
+      console.error('Update participant status error:', err);
+      res.status(500).json({
+        error: 'Failed to update participant status',
+        message: err.message
+      });
+    }
+  }
+  // Update session status
+  async updateSessionStatus(req, res) {
+    try {
+      const { userId } = req.user;
+      const { sessionId } = req.params;
+      const { status } = req.body;
+
+      if (!status || !['active', 'completed'].includes(status)) {
+        return res.status(400).json({
+          error: 'Invalid status',
+          message: 'Status must be one of: active, completed'
+        });
+      }
+
+      // Find the match session
+      const session = await MatchSession.findById(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({
+          error: 'Session not found',
+          message: 'Match session not found'
+        });
+      }
+
+      // Check if user is a participant in this session
+      const isParticipant = session.participants.some(p => p.userId.toString() === userId);
+      
+      if (!isParticipant) {
+        return res.status(403).json({
+          error: 'Not authorized',
+          message: 'You are not a participant in this session'
+        });
+      }
+
+      // Update session status
+      session.status = status;
+
+      // Set timestamps based on status change
+      if (status === 'completed' && !session.endedAt) {
+        session.endedAt = new Date();
+      }
+      
+      // Set the duration if endedAt is set
+      if (session.endedAt && session.startedAt) {
+        session.duration = Math.floor((session.endedAt - session.startedAt) / 1000);
+      }
+      // Save the session
+      await session.save();
+
+      res.status(200).json({
+        message: `Session status updated to ${status}`,
+        session: session
+      });
+
+    } catch (err) {
+      console.error('Update session status error:', err);
+      res.status(500).json({
+        error: 'Failed to update session status',
+        message: err.message
+      });
     }
   }
 }
