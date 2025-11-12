@@ -1,10 +1,20 @@
 import axios, { type AxiosRequestConfig } from "axios";
 
+const IS_DEV = import.meta.env.MODE == "development";
+
 const SERVICE_URLS: Record<string, string> = {
-  question: import.meta.env.VITE_QUESTION_SERVICE_URL,
-  user: import.meta.env.VITE_USER_SERVICE_URL,
-  matching: import.meta.env.VITE_MATCHING_SERVICE_URL,
-  collaboration: import.meta.env.VITE_COLLABORATION_SERVICE_URL,
+  question: IS_DEV
+    ? "http://localhost:3002"
+    : import.meta.env.VITE_QUESTION_SERVICE_URL,
+  user: IS_DEV
+    ? "http://localhost:3001"
+    : import.meta.env.VITE_USER_SERVICE_URL,
+  matching: IS_DEV
+    ? "http://localhost:3003"
+    : import.meta.env.VITE_MATCHING_SERVICE_URL,
+  collaboration: IS_DEV
+    ? "http://localhost:3004"
+    : import.meta.env.VITE_COLLABORATION_SERVICE_URL,
 };
 
 export const request = async ({
