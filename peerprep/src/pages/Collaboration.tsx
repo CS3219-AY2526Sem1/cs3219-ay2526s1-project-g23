@@ -93,7 +93,7 @@ const Collaboration = () => {
 
   useEffect(() => {
     let BACKEND_URL =
-      import.meta.env.VITE_COLLABORATION_SERVICE_URL || "http://localhost:3003";
+      import.meta.env.VITE_COLLABORATION_SERVICE_URL || "http://localhost:3004";
 
     // Convert http(s) → ws(s)
     if (BACKEND_URL.startsWith("https://")) {
