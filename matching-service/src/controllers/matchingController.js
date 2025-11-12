@@ -440,20 +440,6 @@ class MatchingController {
         message: 'Your match partner declined the match. You will be returned to the queue.',
         declinedBy: userId
       });
-
-      // ✅ Reset match status for both users (so polling detects the decline)
-      await redisService.setMatchStatus(userId, 'none');
-      await redisService.setMatchStatus(partner.id, 'none');
-      
-      // Add partner back to the queue
-      const partnerCriteria = userId === proposal.user1.id ? proposal.criteria2 : proposal.criteria1;
-      await redisService.addToQueue(
-        partner.id,
-        partnerCriteria.topic,
-        partnerCriteria.proficiency,
-        partnerCriteria.difficulty,
-        partnerCriteria.language
-      );
       
       // Clean up proposal data (remove proposal keys)
       await redisService.cleanupMatchProposal(partner.id, proposal.user1.id, proposal.user2.id);

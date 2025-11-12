@@ -132,7 +132,6 @@ export default function MatchPartnerSection() {
         toast.info(event.message || "Your match partner declined the match.");
         setIsAcceptModalOpen(false);
         setActiveProposal(null);
-        setIsModalOpen(true); // Optionally reopen the queue/search modal
       }
 
       if (event.type == "match_confirmed") {
