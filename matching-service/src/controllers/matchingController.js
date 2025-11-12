@@ -323,7 +323,7 @@ class MatchingController {
         
         const partnerCriteria = userId === activeProposal.user1.id ? activeProposal.criteria2 : activeProposal.criteria1;
         await redisService.addToQueue(
-          partnerId,
+          partner.id,
           partnerCriteria.topic,
           partnerCriteria.proficiency,
           partnerCriteria.difficulty,
@@ -444,7 +444,7 @@ class MatchingController {
       // Add partner back to queue
       const partnerCriteria = userId === proposal.user1.id ? proposal.criteria2 : proposal.criteria1;
       await redisService.addToQueue(
-        partnerId,
+        partner.id,
         partnerCriteria.topic,
         partnerCriteria.proficiency,
         partnerCriteria.difficulty,
@@ -452,7 +452,7 @@ class MatchingController {
       );
       
       // Clean up proposal
-      await redisService.cleanupMatchProposal(proposalId, proposal.user1.id, proposal.user2.id);
+      await redisService.cleanupMatchProposal(partner.id, proposal.user1.id, proposal.user2.id);
       
       res.status(200).json({
         message: 'Match proposal declined. Partner has been notified.'
