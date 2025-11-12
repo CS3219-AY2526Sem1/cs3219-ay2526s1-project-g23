@@ -158,3 +158,68 @@ Follow the setup guide [here](https://github.com/CS3219-AY2526Sem1/PeerPrep-User
    ```
    npm run dev
    ```
+
+### CI/CD Pipeline to Google Cloud Run
+
+This repository uses GitHub Actions to automatically build and deploy all services to Google Cloud Run whenever code is pushed to the **master** branch.
+
+#### Overview
+
+The pipeline automates:
+
+- Building Docker images for each service (frontend and backend).
+
+- Pushing images to Google Container Registry (GCR).
+
+- Deploying the services to Google Cloud Run with the correct environment variables.
+
+#### Workflow File
+
+The workflow is defined in: `.github/workflows/deploy.yml`
+
+#### Services Deployed
+
+| Service                 | Description                              | Deployment Name         |
+| ----------------------- | ---------------------------------------- | ----------------------- |
+| `peerprep`              | Frontend (Vite React app)                | `peerprep-frontend`     |
+| `user-service`          | Handles user authentication and statistics     | `user-service`          |
+| `question-service`      | Manages coding questions                 | `question-service`      |
+| `matching-service`      | Handles user matchmaking logic           | `matching-service`      |
+| `collaboration-service` | Manages real-time collaboration sessions | `collaboration-service` |
+
+#### Secrets Configuration
+
+All sensitive values (credentials, URLs, and environment variables) are stored securely in GitHub repository secrets.
+
+To configure them:
+
+1. Go to your GitHub repository: **Settings → Secrets and variables → Actions**
+2. Add the following secrets:
+
+| Secret Name                 | Description                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------- |
+| `GCP_SA_KEY`                | JSON key for your Google Cloud service account with Cloud Run & GCR permissions |
+| `MONGO_URI_MATCHING`        | MongoDB URI for matching service                                                |
+| `MONGO_URI_QUESTION`        | MongoDB URI for question service                                                |
+| `MONGO_URI_USER`            | MongoDB URI for user service                                                    |
+| `REDIS_HOST`                | Redis host for caching/matchmaking                                              |
+| `REDIS_PORT`                | Redis port                                                                      |
+| `JWT_SECRET`                | Secret key for JWT authentication                                               |
+| `USER_SERVICE_URL`          | Deployed Cloud Run URL for user-service                                         |
+| `QUESTION_SERVICE_URL`      | Deployed Cloud Run URL for question-service                                     |
+| `MATCHING_SERVICE_URL`      | Deployed Cloud Run URL for matching-service                                     |
+| `COLLABORATION_SERVICE_URL` | Deployed Cloud Run URL for collaboration-service                                |
+| `FRONTEND_URL`              | Deployed Cloud Run URL for frontend (`peerprep-frontend`)                       |
+
+#### Deployment Output
+
+Each successful deployment will appear in the Cloud Run dashboard under your GCP project: **GCP Console → Cloud Run → Services**
+
+#### Deployed Cloud Run URLs
+
+- **Question Service:** [https://question-service-6619362751.asia-southeast1.run.app](https://question-service-6619362751.asia-southeast1.run.app)  
+- **User Service:** [https://user-service-6619362751.asia-southeast1.run.app](https://user-service-6619362751.asia-southeast1.run.app)  
+- **Matching Service:** [https://matching-service-6619362751.asia-southeast1.run.app](https://matching-service-6619362751.asia-southeast1.run.app)  
+- **Collaboration Service:** [https://collaboration-service-6619362751.asia-southeast1.run.app](https://collaboration-service-6619362751.asia-southeast1.run.app)  
+- **Frontend:** [https://peerprep-frontend-6619362751.asia-southeast1.run.app](https://peerprep-frontend-6619362751.asia-southeast1.run.app)
+

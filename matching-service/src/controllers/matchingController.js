@@ -434,14 +434,18 @@ class MatchingController {
       const proposal = result.proposal;
       const partner = userId === proposal.user1.id ? proposal.user2 : proposal.user1;
       
-      // Notify partner that match was declined
+      // Notify partner in real time
       await redisService.notifyUser(partner.id, {
         type: 'match_declined',
         message: 'Your match partner declined the match. You will be returned to the queue.',
         declinedBy: userId
       });
+
+      // ✅ Reset match status for both users (so polling detects the decline)
+      await redisService.setMatchStatus(userId, 'none');
+      await redisService.setMatchStatus(partner.id, 'none');
       
-      // Add partner back to queue
+      // Add partner back to the queue
       const partnerCriteria = userId === proposal.user1.id ? proposal.criteria2 : proposal.criteria1;
       await redisService.addToQueue(
         partner.id,
@@ -451,22 +455,23 @@ class MatchingController {
         partnerCriteria.language
       );
       
-      // Clean up proposal
+      // Clean up proposal data (remove proposal keys)
       await redisService.cleanupMatchProposal(partner.id, proposal.user1.id, proposal.user2.id);
       
-      res.status(200).json({
+      return res.status(200).json({
         message: 'Match proposal declined. Partner has been notified.'
       });
-      
+
     } catch (err) {
       console.error('Decline match proposal error:', err);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Failed to decline match proposal',
         message: err.message
       });
     }
   }
-  
+
+    
   // Get match status for user
   async getMatchStatus(req, res) {
     try {
