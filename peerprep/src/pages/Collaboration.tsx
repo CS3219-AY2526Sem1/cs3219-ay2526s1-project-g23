@@ -92,11 +92,22 @@ const Collaboration = () => {
   }, []);
 
   useEffect(() => {
+    let BACKEND_URL =
+      import.meta.env.VITE_COLLABORATION_SERVICE_URL || "http://localhost:3004";
+
+    // Convert http(s) → ws(s)
+    if (BACKEND_URL.startsWith("https://")) {
+      BACKEND_URL = BACKEND_URL.replace("https://", "wss://");
+    } else if (BACKEND_URL.startsWith("http://")) {
+      BACKEND_URL = BACKEND_URL.replace("http://", "ws://");
+    }
+
     const provider = new WebsocketProvider(
-      "ws://localhost:3004",
+      `${BACKEND_URL}`,
       sessionId as string,
       ydocument
     );
+
     setProvider(provider);
 
     return () => {
