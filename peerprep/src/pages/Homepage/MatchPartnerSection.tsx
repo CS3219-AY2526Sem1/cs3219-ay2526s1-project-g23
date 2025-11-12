@@ -128,6 +128,12 @@ export default function MatchPartnerSection() {
         setIsModalOpen(false); // Close the "searching" modal
       }
 
+      if (event.type === "match_declined") {
+        toast.info(event.message || "Your match partner declined the match.");
+        setIsAcceptModalOpen(false);
+        setActiveProposal(null);
+      }
+
       if (event.type == "match_confirmed") {
         navigate(`/collaborate/${event.sessionId}`);
       }
